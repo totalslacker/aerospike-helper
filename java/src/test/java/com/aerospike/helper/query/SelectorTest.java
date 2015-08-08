@@ -54,9 +54,9 @@ public class SelectorTest {
 	@Test
 	public void selectOnIndex() throws IOException {
 		this.client.createIndex(null, NAMESPACE, SET_NAME, "age_index", "age", IndexType.NUMERIC);
-		Selector selector = new Selector(client);
+		QueryEngine selector = new QueryEngine(client);
 		Filter filter = Filter.range("age", 28, 29);
-		KeyRecordIterator it = selector.query(NAMESPACE, SET_NAME, filter);
+		KeyRecordIterator it = selector.select(NAMESPACE, SET_NAME, filter);
 		int count = 0;
 		while (it.hasNext()){
 			KeyRecord rec = it.next();
@@ -70,10 +70,10 @@ public class SelectorTest {
 	@Test
 	public void selectOnIndexWithQualifiers() throws IOException {
 		this.client.createIndex(null, NAMESPACE, SET_NAME, "age_index", "age", IndexType.NUMERIC);
-		Selector selector = new Selector(client);
+		QueryEngine selector = new QueryEngine(client);
 		Filter filter = Filter.range("age", 25, 29);
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("blue"));
-		KeyRecordIterator it = selector.query(NAMESPACE, SET_NAME, filter, qual1);
+		KeyRecordIterator it = selector.select(NAMESPACE, SET_NAME, filter, qual1);
 		int count = 0;
 		while (it.hasNext()){
 			KeyRecord rec = it.next();
@@ -87,10 +87,10 @@ public class SelectorTest {
 	@Test
 	public void selectWithQualifiersOnly() throws IOException {
 		this.client.createIndex(null, NAMESPACE, SET_NAME, "age_index", "age", IndexType.NUMERIC);
-		Selector selector = new Selector(client);
+		QueryEngine selector = new QueryEngine(client);
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("green"));
 		Qualifier qual2 = new Qualifier("age", Qualifier.FilterOperation.BETWEEN, Value.get(28), Value.get(29));
-		KeyRecordIterator it = selector.query(NAMESPACE, SET_NAME, null, qual1, qual2);
+		KeyRecordIterator it = selector.select(NAMESPACE, SET_NAME, null, qual1, qual2);
 		int count = 0;
 		while (it.hasNext()){
 			KeyRecord rec = it.next();

@@ -6,34 +6,36 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.aerospike.client.AerospikeClient;
+import com.aerospike.client.Info;
 import com.aerospike.client.Language;
 import com.aerospike.client.Value;
+import com.aerospike.client.cluster.Node;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.RecordSet;
 import com.aerospike.client.query.ResultSet;
 import com.aerospike.client.query.Statement;
 
-public class Selector {
+public class QueryEngine {
 	
-	private static Logger log = Logger.getLogger(Selector.class);
+	private static Logger log = Logger.getLogger(QueryEngine.class);
 
 	private AerospikeClient client;
 
-	public Selector(AerospikeClient client) {
+	public QueryEngine(AerospikeClient client) {
 		super();
 		this.client = client;
 		regusterUDF();
 	}
 	
-	public KeyRecordIterator query(String namespace, String set, Filter filter, Qualifier... qualifiers){
+	public KeyRecordIterator select(String namespace, String set, Filter filter, Qualifier... qualifiers){
 		Statement stmt = new Statement();
 		stmt.setNamespace(namespace);
 		stmt.setSetName(set);
 		if (filter != null)
 			stmt.setFilters(filter);
-		return query(stmt, qualifiers);
+		return select(stmt, qualifiers);
 	}
-	public KeyRecordIterator query(Statement stmt, Qualifier... qualifiers){
+	public KeyRecordIterator select(Statement stmt, Qualifier... qualifiers){
 		KeyRecordIterator results = null;
 		
 		if (qualifiers != null && qualifiers.length > 0) {
@@ -64,15 +66,15 @@ public class Selector {
 	
 
 	private void regusterUDF() {
-//		Node[] nodes = this.client.getNodes();
-//		String moduleString = Info.request(nodes[0], "udf-list");
-//		if (moduleString.isEmpty()
-//				|| !moduleString.contains("as_utility.lua")){ // register the spring_api udf module
+		Node[] nodes = this.client.getNodes();
+		String moduleString = Info.request(nodes[0], "udf-list");
+		if (moduleString.isEmpty()
+				|| !moduleString.contains("as_utility.lua")){ // register the spring_api udf module
 
 			this.client.register(null, this.getClass().getClassLoader(), 
 					"com/aerospike/helper/query/as_utility.lua", 
 					"as_utility.lua", Language.LUA);
-//		}
+		}
 	}
 
 }
