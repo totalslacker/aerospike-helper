@@ -10,6 +10,8 @@ import com.aerospike.client.Info;
 import com.aerospike.client.Language;
 import com.aerospike.client.Value;
 import com.aerospike.client.cluster.Node;
+import com.aerospike.client.lua.LuaCache;
+import com.aerospike.client.lua.LuaConfig;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.RecordSet;
 import com.aerospike.client.query.ResultSet;
@@ -43,7 +45,8 @@ public class QueryEngine {
 			originArgs.put("includeAllFields", 1);
 			String filterFuncStr = buildFilterFunction(qualifiers);
 			originArgs.put("filterFuncStr", filterFuncStr);
-			ResultSet resultSet = this.client.queryAggregate(null, stmt, "as_utility", "select_records", Value.get(originArgs));
+			stmt.setAggregateFunction(this.getClass().getClassLoader(), "com/aerospike/helper/query/as_utility.lua", "as_utility", "select_records", Value.get(originArgs));
+			ResultSet resultSet = this.client.queryAggregate(null, stmt);
 			results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
 		} else {
 			RecordSet recordSet = this.client.query(null, stmt);
@@ -74,6 +77,7 @@ public class QueryEngine {
 			this.client.register(null, this.getClass().getClassLoader(), 
 					"com/aerospike/helper/query/as_utility.lua", 
 					"as_utility.lua", Language.LUA);
+			
 		}
 	}
 

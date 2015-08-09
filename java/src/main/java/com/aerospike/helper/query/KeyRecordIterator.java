@@ -83,4 +83,9 @@ public class KeyRecordIterator implements Iterator<KeyRecord>, Closeable {
 		return keyRecord;
 	}
 
+	@Override
+	public void remove() {
+		
+	}
+
 }
