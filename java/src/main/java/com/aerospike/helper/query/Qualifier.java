@@ -7,6 +7,7 @@ import java.util.Set;
 
 import com.aerospike.client.Value;
 import com.aerospike.client.command.ParticleType;
+import com.aerospike.client.query.Filter;
 
 public class Qualifier implements Map<String, Object>{
 	private static final String FIELD = "field";
@@ -15,9 +16,9 @@ public class Qualifier implements Map<String, Object>{
 	private static final String OPERATION = "operation";
 	private Map<String, Object> internalMap;
 	public enum FilterOperation {
-	    EQ, GT, GTEQ, LT, LTEQ, NOTEQ, BETWEEN, IN
+		EQ, GT, GTEQ, LT, LTEQ, NOTEQ, BETWEEN, START_WITH, ENDS_WITH
 	}
-	
+
 	public Qualifier() {
 		super();
 		internalMap = new HashMap<String, Object>();
@@ -32,7 +33,7 @@ public class Qualifier implements Map<String, Object>{
 		this(field, operation, value1);
 		internalMap.put(VALUE2, value2);
 	}
-	
+
 	public FilterOperation getOperation(){
 		return (FilterOperation) internalMap.get(OPERATION);
 	}
@@ -46,34 +47,42 @@ public class Qualifier implements Map<String, Object>{
 		return (Value) internalMap.get(VALUE2);
 	}
 
-	public String luaFilterString(){
-
-		StringBuilder res = new StringBuilder("rec['" + getField() + "']");
+	public Filter asFilter(){
 		FilterOperation op = getOperation();
 		switch (op) {
 		case EQ:
-			res.append(" == " + luaValueString(getValue1()) );
-			break;
-		case NOTEQ:
-			res.append("~= " + luaValueString(getValue1()) );
-			break;
-		case GT:
-			res.append(" > " + luaValueString(getValue1()) );
-			break;
-		case GTEQ:
-			res.append(" >= " + luaValueString(getValue1()) );
-			break;
-		case LT:
-			res.append(" < " + luaValueString(getValue1()) );
-			break;
-		case LTEQ:
-			res.append(" <= " + luaValueString(getValue1()) );
-			break;
+			return Filter.equal(getField(), getValue1());
 		case BETWEEN:
-			res.append(" >= " + luaValueString(getValue1()) + " and rec['" + getField() + "'] <= " + luaValueString(getValue2()));			
-			break;
+			return Filter.range(getField(), getValue1(), getValue2());
+		default:
+			return null;
 		}
-		return res.toString();
+	}
+
+	public String luaFilterString(){
+
+		FilterOperation op = getOperation();
+		switch (op) {
+		case EQ:
+			return String.format("rec['%s'] == %s", getField(),  luaValueString(getValue1()));
+		case NOTEQ:
+			return String.format("rec['%s'] ~= %s", getField(), luaValueString(getValue1()));
+		case GT:
+			return String.format("rec['%s'] > %s", getField(), luaValueString(getValue1()));
+		case GTEQ:
+			return String.format("rec['%s'] >= %s", getField(), luaValueString(getValue1()));
+		case LT:
+			return String.format("rec['%s'] < %s", getField(), luaValueString(getValue1()));
+		case LTEQ:
+			return String.format("rec['%s'] <= %s", getField(), luaValueString(getValue1()));
+		case BETWEEN:
+			return String.format("rec['%s'] >= %s and rec['%s'] <= %s  ", getField(), luaValueString(getValue1()), getField(), luaValueString(getValue2()));
+		case START_WITH:
+			return String.format("string.starts(rec['%s'], %s)", getField(), luaValueString(getValue1()));			
+		case ENDS_WITH:
+			return String.format("string.ends(rec['%s'], %s)", getField(), luaValueString(getValue1()));			
+		}
+		return "";
 	}
 
 	private String luaValueString(Value value){
@@ -96,8 +105,8 @@ public class Qualifier implements Map<String, Object>{
 		return res;
 	}
 
-	
-	
+
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.util.Map#size()
