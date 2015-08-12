@@ -60,27 +60,32 @@ public class Qualifier implements Map<String, Object>{
 	}
 
 	public String luaFilterString(){
-
+		String value1 = luaValueString(getValue1());
 		FilterOperation op = getOperation();
 		switch (op) {
 		case EQ:
-			return String.format("rec['%s'] == %s", getField(),  luaValueString(getValue1()));
+			return String.format("rec['%s'] == %s", getField(),  value1);
 		case NOTEQ:
-			return String.format("rec['%s'] ~= %s", getField(), luaValueString(getValue1()));
+			return String.format("rec['%s'] ~= %s", getField(), value1);
 		case GT:
-			return String.format("rec['%s'] > %s", getField(), luaValueString(getValue1()));
+			return String.format("rec['%s'] > %s", getField(), value1);
 		case GTEQ:
-			return String.format("rec['%s'] >= %s", getField(), luaValueString(getValue1()));
+			return String.format("rec['%s'] >= %s", getField(), value1);
 		case LT:
-			return String.format("rec['%s'] < %s", getField(), luaValueString(getValue1()));
+			return String.format("rec['%s'] < %s", getField(), value1);
 		case LTEQ:
-			return String.format("rec['%s'] <= %s", getField(), luaValueString(getValue1()));
+			return String.format("rec['%s'] <= %s", getField(), value1);
 		case BETWEEN:
-			return String.format("rec['%s'] >= %s and rec['%s'] <= %s  ", getField(), luaValueString(getValue1()), getField(), luaValueString(getValue2()));
+			String value2 = luaValueString(getValue2());
+			return String.format("rec['%s'] >= %s and rec['%s'] <= %s  ", getField(), value1, getField(), value2);
 		case START_WITH:
-			return String.format("string.starts(rec['%s'], %s)", getField(), luaValueString(getValue1()));			
+			return String.format("string.sub(rec['%s'],1,string.len(%s))==%s", getField(), value1, value1);			
 		case ENDS_WITH:
-			return String.format("string.ends(rec['%s'], %s)", getField(), luaValueString(getValue1()));			
+			return String.format("%s=='' or string.sub(rec['%s'],-string.len(%s))==%s", 
+					value1,
+					getField(),
+					value1,
+					value1);			
 		}
 		return "";
 	}

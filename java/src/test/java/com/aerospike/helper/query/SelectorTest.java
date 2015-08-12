@@ -68,6 +68,37 @@ public class SelectorTest {
 		Assert.assertEquals(40, count);
 	}
 	@Test
+	public void selectStartsWith() throws IOException {
+		QueryEngine selector = new QueryEngine(client);
+		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.ENDS_WITH, Value.get("e"));
+		KeyRecordIterator it = selector.select(NAMESPACE, SET_NAME, null, qual1);
+		int count = 0;
+		while (it.hasNext()){
+			KeyRecord rec = it.next();
+			count++;
+//			System.out.println(rec);
+		}
+		it.close();
+//		System.out.println(count);
+		Assert.assertEquals(40, count);
+	}
+	@Test
+	public void selectEndsWith() throws IOException {
+		QueryEngine selector = new QueryEngine(client);
+		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("blue"));
+		Qualifier qual2 = new Qualifier("name", Qualifier.FilterOperation.START_WITH, Value.get("na"));
+		KeyRecordIterator it = selector.select(NAMESPACE, SET_NAME, null, qual1, qual2);
+		int count = 0;
+		while (it.hasNext()){
+			KeyRecord rec = it.next();
+			count++;
+//			System.out.println(rec);
+		}
+		it.close();
+//		System.out.println(count);
+		Assert.assertEquals(20, count);
+	}
+	@Test
 	public void selectOnIndexWithQualifiers() throws IOException {
 		this.client.createIndex(null, NAMESPACE, SET_NAME, "age_index", "age", IndexType.NUMERIC);
 		QueryEngine selector = new QueryEngine(client);
