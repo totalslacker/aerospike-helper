@@ -17,14 +17,15 @@ end
 
 function dumpRecord (rec)
   info("record:")
-  info(tostring(record.setname(rec))..":"..tostring(record.digest(rec))..
-            ":(gen:"..tostring(record.gen(rec))..")"..
-            ",(exp:"..tostring(record.ttl(rec))..")")
-  info(" bins:")
+  info("  set:"..tostring(record.setname(rec)))
+  info("  digest:"..tostring(record.digest(rec)))
+  info("  gen:"..tostring(record.gen(rec)))
+  info("  exp:"..tostring(record.ttl(rec)))
+  info("  bins:")
   local names = record.bin_names(rec)
   for k, v in pairs(names) do
     local binVal = rec[v]
-    info("  (" .. v .. ":"..tostring(binVal)..")")
+    info("    (" .. v .. ":"..tostring(binVal)..")")
   end
 end
 
@@ -47,7 +48,7 @@ function dumpLocal()
 end
 
 local function filter_record(rec, filterFuncStr, filterFunc)
-  dumpRecord(rec)
+  --dumpRecord(rec)
   info(filterFuncStr)
   -- if there is no filter, select all records
   if filterFuncStr == nil then
@@ -138,7 +139,7 @@ function select_records(stream, origArgs)
 
 
   local function filter_records(rec)
-    info("filterFuncStr:"..tostring(filterFuncStr))
+    --info("filterFuncStr:"..tostring(filterFuncStr))
     return filter_record(rec, filterFuncStr, filterFunc)
   end
 

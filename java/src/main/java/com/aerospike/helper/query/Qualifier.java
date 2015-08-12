@@ -94,12 +94,12 @@ public class Qualifier implements Map<String, Object>{
 		String res = null;
 		int type = value.getType();
 		switch (type) {
-		case ParticleType.LIST:
-			res = value.toString();
-			break;
-		case ParticleType.MAP:
-			res = value.toString();
-			break;
+//		case ParticleType.LIST:
+//			res = value.toString();
+//			break;
+//		case ParticleType.MAP:
+//			res = value.toString();
+//			break;
 		case ParticleType.STRING:
 			res = String.format("'%s'", value.toString());
 			break;

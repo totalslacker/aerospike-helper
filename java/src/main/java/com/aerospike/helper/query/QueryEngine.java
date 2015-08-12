@@ -72,7 +72,7 @@ public class QueryEngine {
 		Node[] nodes = this.client.getNodes();
 		String moduleString = Info.request(nodes[0], "udf-list");
 		if (moduleString.isEmpty()
-				|| !moduleString.contains("as_utility.lua")){ // register the spring_api udf module
+				|| !moduleString.contains("as_utility.lua")){ // register the udf module
 
 			this.client.register(null, this.getClass().getClassLoader(), 
 					"com/aerospike/helper/query/as_utility.lua", 

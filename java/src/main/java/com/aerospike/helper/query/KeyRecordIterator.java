@@ -71,7 +71,7 @@ public class KeyRecordIterator implements Iterator<KeyRecord>, Closeable {
 			if (log.isDebugEnabled()){
 				for (Map.Entry<String, Object> entry : map.entrySet())
 				{
-					System.out.println(entry.getKey() + " = " + entry.getValue());
+					log.debug(entry.getKey() + " = " + entry.getValue());
 				}
 			}
 			Long generation =  (Long) meta.get("generation");
