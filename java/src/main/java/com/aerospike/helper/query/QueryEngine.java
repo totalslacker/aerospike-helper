@@ -16,13 +16,25 @@ import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.RecordSet;
 import com.aerospike.client.query.ResultSet;
 import com.aerospike.client.query.Statement;
-
+/**
+ * This class provides a multi-filter query engine that
+ * augments the query capability in Aerospike.
+ * To achieve this the class uses a UserDefined Function written in Lua to 
+ * provide the additional filtering. This UDF module packaged in the JAR and is automatically registered
+ * with the cluster.
+ * @author peter
+ *
+ */
 public class QueryEngine {
 	
 	private static Logger log = Logger.getLogger(QueryEngine.class);
 
 	private AerospikeClient client;
-
+	/**
+	 * The Query engine is constructed by passing in an existing 
+	 * AerospikeClient instance
+	 * @param client
+	 */
 	public QueryEngine(AerospikeClient client) {
 		super();
 		this.client = client;
