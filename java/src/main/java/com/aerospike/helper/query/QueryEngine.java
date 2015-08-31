@@ -40,7 +40,51 @@ public class QueryEngine {
 		this.client = client;
 		regusterUDF();
 	}
+	/**
+	 * @param namespace
+	 * @param setName
+	 * @param filter
+	 * @param sortMap
+	 * @param qualifiers
+	 * @return
+	 */
+	public KeyRecordIterator select(String namespace, String set, Filter filter, Map<String, String> sortMap, Qualifier... qualifiers){
+		Statement stmt = new Statement();
+		stmt.setNamespace(namespace);
+		stmt.setSetName(set);
+		if (filter != null)
+			stmt.setFilters(filter);
+		return select(stmt, sortMap, qualifiers);	
+
+	}
+	public KeyRecordIterator select(Statement stmt, Map<String, String> sortMap, Qualifier... qualifiers){
+		KeyRecordIterator results = null;
+		
+		if (qualifiers != null && qualifiers.length > 0) {
+			Map<String, Object> originArgs = new HashMap<String, Object>();
+			originArgs.put("includeAllFields", 1);
+			String filterFuncStr = buildFilterFunction(qualifiers);
+			originArgs.put("filterFuncStr", filterFuncStr);
+			String sortFuncStr = buildSortFunction(sortMap);
+			originArgs.put("sortFuncStr", sortFuncStr);
+			stmt.setAggregateFunction(this.getClass().getClassLoader(), "com/aerospike/helper/query/as_utility.lua", "as_utility", "select_records", Value.get(originArgs));
+			ResultSet resultSet = this.client.queryAggregate(null, stmt);
+			results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
+		} else {
+			RecordSet recordSet = this.client.query(null, stmt);
+			results = new KeyRecordIterator(stmt.getNamespace(), recordSet);
+		} 
+		return results;
+	}
 	
+	/**
+	 * @param sortMap
+	 * @return
+	 */
+	private String buildSortFunction(Map<String, String> sortMap) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	public KeyRecordIterator select(String namespace, String set, Filter filter, Qualifier... qualifiers){
 		Statement stmt = new Statement();
 		stmt.setNamespace(namespace);
@@ -84,7 +128,7 @@ public class QueryEngine {
 		Node[] nodes = this.client.getNodes();
 		String moduleString = Info.request(nodes[0], "udf-list");
 		if (moduleString.isEmpty()
-				|| !moduleString.contains("as_utility.lua")){ // register the udf module
+				|| !moduleString.contains("as_utility.lua")){ // register the spring_api udf module
 
 			this.client.register(null, this.getClass().getClassLoader(), 
 					"com/aerospike/helper/query/as_utility.lua", 
