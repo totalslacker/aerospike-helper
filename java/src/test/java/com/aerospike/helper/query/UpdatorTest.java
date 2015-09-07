@@ -58,7 +58,7 @@ public class UpdatorTest {
 		    add(new Bin("ending", "ends with e"));
 		}};
 		Map<String, Long> counts = updator.update(NAMESPACE, SET_NAME, bins, null, qual1);
-		System.out.println(counts);
+		//System.out.println(counts);
 		Assert.assertEquals((Long)40L, (Long)counts.get("read"));
 		Assert.assertEquals((Long)40L, (Long)counts.get("write"));
 	}
@@ -71,7 +71,7 @@ public class UpdatorTest {
 		    add(new Bin("starting", "ends with e"));
 		}};
 		Map<String, Long> counts = updator.update(NAMESPACE, SET_NAME, bins, null, qual1, qual2);
-		System.out.println(counts);
+		//System.out.println(counts);
 		Assert.assertEquals((Long)20L, (Long)counts.get("read"));
 		Assert.assertEquals((Long)20L, (Long)counts.get("write"));
 	}
