@@ -25,9 +25,10 @@ public class SelectorTest {
 	int[] ages = new int[]{25,26,27,28,29};
 	String[] colours = new String[]{"blue","red","yellow","green","orange"};
 	String[] animals = new String[]{"cat","dog","mouse","snake","lion"};
+
 	@Before
 	public void setUp() throws Exception {
-		client = new AerospikeClient("127.0.0.1", 3000);
+		client = new AerospikeClient("172.28.128.6", 3000);
 		int i = 0;
 		for (int x = 1; x <= RECORD_COUNT; x++){
 			Key key = new Key(NAMESPACE, SET_NAME, "selector-test:"+ x);

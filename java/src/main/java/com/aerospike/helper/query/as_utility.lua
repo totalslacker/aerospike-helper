@@ -1,7 +1,7 @@
 
 -- Print contents of `tbl`, with indentation.
 -- `indent` sets the initial level of indentation.
-function tprint (tbl, indent)
+function dumpTable (tbl, indent)
   if not indent then indent = 0 end
   for k, v in pairs(tbl) do
     formatting = string.rep("  ", indent) .. k .. ": "
@@ -38,7 +38,7 @@ function dumpLocal()
         if name then 
           if type(value) == "table" then
             info("dump:"..name)
-            tprint(value, 1)
+            dumpTable(value, 1)
           else
             info("dump:"..name.." = "..tostring(value)) 
           end
@@ -151,9 +151,9 @@ function select_records(stream, origArgs)
 end
 
 ------------------------------------------------------------------------------------------
---  Returns Record Digests For Specified Filters
+--  Returns Record Meta For Specified Filters
 ------------------------------------------------------------------------------------------
-function query_digests(stream, origArgs)
+function query_meta(stream, origArgs)
   local filterFuncStr = origArgs["filterFuncStr"]
 
   local filterFunc = nil
@@ -163,10 +163,14 @@ function query_digests(stream, origArgs)
 
   local function add_records(rec)
 
-      local r = map()
-      r['d'] =  record.digest(rec)
+    local result = map()
+    result["meta_data"] = map()
+    result["meta_data"]["digest"] = record.digest(rec)
+    result["meta_data"]["generation"] = record.gen(rec)
+    result["meta_data"]["set_name"] = record.setname(rec)
+    result["meta_data"]["ttl"] = record.ttl(rec)
       
-      return r
+    return result
   end
 
   local function filter_records(rec)

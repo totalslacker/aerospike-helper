@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import com.aerospike.client.Key;
 import com.aerospike.client.Record;
+import com.aerospike.client.Value;
 import com.aerospike.client.query.KeyRecord;
 import com.aerospike.client.query.RecordSet;
 import com.aerospike.client.query.ResultSet;
@@ -77,7 +78,7 @@ public class KeyRecordIterator implements Iterator<KeyRecord>, Closeable {
 			Long generation =  (Long) meta.get("generation");
 			Long ttl =  (Long) meta.get("ttl");
 			Record record = new Record(binMap, generation.intValue(), ttl.intValue());
-			Key key = new Key(namespace, (String) meta.get("set_name"), (byte[]) meta.get("digest")); 
+			Key key = new Key(namespace, (byte[]) meta.get("digest"), (String) meta.get("set_name"), null);
 			keyRecord = new KeyRecord(key , record);
 		}
 		return keyRecord;
