@@ -1,5 +1,7 @@
 package com.aerospike.helper.query;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,12 +21,14 @@ import com.aerospike.client.policy.InfoPolicy;
 import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.client.query.Filter;
+import com.aerospike.client.query.IndexType;
 import com.aerospike.client.query.KeyRecord;
 import com.aerospike.client.query.RecordSet;
 import com.aerospike.client.query.ResultSet;
 import com.aerospike.client.query.Statement;
 import com.aerospike.helper.model.Index;
 import com.aerospike.helper.model.Module;
+import com.aerospike.helper.query.Qualifier.FilterOperation;
 /**
  * This class provides a multi-filter query engine that
  * augments the query capability in Aerospike.
@@ -34,7 +38,7 @@ import com.aerospike.helper.model.Module;
  * @author peter
  *
  */
-public class QueryEngine {
+public class QueryEngine implements Closeable{
 
 	private static Logger log = Logger.getLogger(QueryEngine.class);
 
@@ -115,24 +119,60 @@ public class QueryEngine {
 			stmt.setFilters(filter);
 		return select(stmt, qualifiers);
 	}
+
+
+
+
+	/**
+	 * Select records filtered by Qualifiers
+	 * @param stmt
+	 * @param qualifiers
+	 * @return
+	 */
 	public KeyRecordIterator select(Statement stmt, Qualifier... qualifiers){
 		KeyRecordIterator results = null;
 
-		if (qualifiers != null && qualifiers.length > 0) {
-			Map<String, Object> originArgs = new HashMap<String, Object>();
-			originArgs.put("includeAllFields", 1);
-			String filterFuncStr = buildFilterFunction(qualifiers);
-			originArgs.put("filterFuncStr", filterFuncStr);
-			stmt.setAggregateFunction(this.getClass().getClassLoader(), "com/aerospike/helper/udf/as_utility.lua", "as_utility", "select_records", Value.get(originArgs));
-			ResultSet resultSet = this.client.queryAggregate(null, stmt);
-			results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
-		} else {
+		if (qualifiers == null || qualifiers.length == 0)  {
 			RecordSet recordSet = this.client.query(null, stmt);
 			results = new KeyRecordIterator(stmt.getNamespace(), recordSet);
-		} 
+		}
+
+		Map<String, Object> originArgs = new HashMap<String, Object>();
+		originArgs.put("includeAllFields", 1);
+		stmt.setAggregateFunction(this.getClass().getClassLoader(), "com/aerospike/helper/udf/as_utility.lua", "as_utility", "select_records", Value.get(originArgs));
+
+		for (int i = 0; i < qualifiers.length; i++){
+			Qualifier qualifier = qualifiers[i];
+			if (isIndexedBin(qualifier)){
+				Filter filter = qualifier.asFilter();
+				if (filter != null){
+					stmt.setFilters(filter);
+					qualifiers[i] = null;
+					break;
+				}
+			}
+		}
+
+		String filterFuncStr = buildFilterFunction(qualifiers);
+		originArgs.put("filterFuncStr", filterFuncStr);
+
+		ResultSet resultSet = this.client.queryAggregate(null, stmt);
+		results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
 		return results;
 	}
-	
+
+	protected boolean isIndexedBin(Qualifier qualifier){
+		Index index = this.indexCache.get(qualifier.getField());
+		if (index == null)
+			return false;
+		
+		FilterOperation operation = qualifier.getOperation();
+		if (operation != FilterOperation.EQ && operation != FilterOperation.BETWEEN)
+			return false;
+		
+		return false;
+	}
+
 	/*
 	 * *****************************************************
 	 * 
@@ -140,13 +180,13 @@ public class QueryEngine {
 	 * 
 	 * ***************************************************** 
 	 */
-	
+
 	public void insert(String namespace, String set, Key key, List<Bin> bins){
-		
+
 		this.client.put(this.insertPolicy, key, bins.toArray(new Bin[0]));	
 
 	}
-	
+
 
 	/*
 	 * *****************************************************
@@ -267,7 +307,8 @@ public class QueryEngine {
 	private String buildFilterFunction(Qualifier[] qualifiers) {
 		StringBuilder sb = new StringBuilder("if ");
 		for (int i = 0; i < qualifiers.length; i++){
-
+			if (qualifiers[i] == null)
+				continue;
 			sb.append(qualifiers[i].luaFilterString());
 			if (qualifiers.length > 1 && i < (qualifiers.length -1) )
 				sb.append(" and ");
@@ -321,7 +362,7 @@ public class QueryEngine {
 			}
 		}
 	}
-	
+
 	public synchronized Index getIndex(String binName){
 		return this.indexCache.get(binName);
 	}
@@ -340,9 +381,22 @@ public class QueryEngine {
 			}
 		}
 	}
-	
+
 	public synchronized Module getModule(String moduleName){
 		return this.moduleCache.get(moduleName);
+	}
+
+	@Override
+	public void close() throws IOException {
+		if (this.client != null)
+			this.client.close();
+		indexCache.clear();
+		indexCache = null;
+		updatePolicy = null;
+		insertPolicy = null;
+		infoPolicy = null;
+		moduleCache.clear();
+		moduleCache = null;
 	}
 
 }
