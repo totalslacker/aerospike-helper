@@ -2,8 +2,8 @@ package com.aerospike.helper.query;
 
 import com.aerospike.client.Value;
 
-public class ExipryQualifier extends Qualifier {
-	public ExipryQualifier(FilterOperation op, Value value) {
+public class ExpiryQualifier extends Qualifier {
+	public ExpiryQualifier(FilterOperation op, Value value) {
 		super(QueryEngine.Meta.EXPIRATION.toString(), op, value);
 	}
 	@Override

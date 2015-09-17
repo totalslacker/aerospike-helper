@@ -31,6 +31,24 @@ public class FlightsTest {
 	}
 
 	@Test
+	public void selectNoQualifiers() throws IOException {
+		Statement st = new Statement();
+		st.setNamespace(NAMESPACE);
+		st.setSetName(SET_NAME);
+		st.setBinNames("ORIGIN", "DEST", "CARRIER", "FL_NUM");
+		KeyRecordIterator it = selector.select(st);
+		int count = 0;
+		while (it.hasNext()){
+			KeyRecord rec = it.next();
+			count++;
+			//System.out.println(rec);
+		}
+		it.close();
+		//System.out.println(count);
+		Assert.assertTrue(count > 900000);
+	}
+
+	@Test
 	public void selectWith2Qualifiers() throws IOException {
 		Qualifier qual1 = new Qualifier("ORIGIN", Qualifier.FilterOperation.EQ, Value.get("BWI"));
 		Qualifier qual2 = new Qualifier("DEST", Qualifier.FilterOperation.EQ, Value.get("JFK"));
