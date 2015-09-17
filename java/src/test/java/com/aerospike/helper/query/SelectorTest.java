@@ -14,6 +14,7 @@ import com.aerospike.client.Value;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.IndexType;
 import com.aerospike.client.query.KeyRecord;
+import com.aerospike.client.query.Statement;
 
 public class SelectorTest {
 	private static final String NAMESPACE = "test";
@@ -53,6 +54,23 @@ public class SelectorTest {
 		selector.close();
 	}
 
+	@Test
+	public void selectOne() throws IOException {
+		Statement stmt = new Statement();
+		stmt.setNamespace(NAMESPACE);
+		stmt.setSetName(SET_NAME);
+		KeyQualifier kq = new KeyQualifier(Value.get("selector-test:3"));
+		KeyRecordIterator it = selector.select(stmt, kq);
+		int count = 0;
+		while (it.hasNext()){
+			KeyRecord rec = it.next();
+			count++;
+//			System.out.println(rec);
+		}
+		it.close();
+//		System.out.println(count);
+		Assert.assertEquals(1, count);
+	}
 	@Test
 	public void selectOnIndex() throws IOException {
 		this.client.createIndex(null, NAMESPACE, SET_NAME, "age_index", "age", IndexType.NUMERIC);
@@ -129,6 +147,21 @@ public class SelectorTest {
 		it.close();
 		//System.out.println(count);
 		Assert.assertEquals(20, count);
+	}
+	@Test
+	public void selectWithGeneration() throws IOException {
+		selector.refreshCluster();
+		Qualifier qual1 = new GenerationQualifier(Qualifier.FilterOperation.GTEQ, Value.get(1));
+		KeyRecordIterator it = selector.select(NAMESPACE, SET_NAME, null, qual1);
+		//int count = 0;
+		while (it.hasNext()){
+			KeyRecord rec = it.next();
+			Assert.assertTrue(rec.record.generation >= 1);
+			//count++;
+			//System.out.println(String.format("(age:%d),(color:%s)",rec.record.getValue("age"), rec.record.getValue("color")));
+		}
+		it.close();
+		//System.out.println(count);
 	}
 
 }

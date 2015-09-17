@@ -13,8 +13,6 @@ import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
-import com.aerospike.helper.query.QueryEngine;
-
 public class Module {
 	
 	private static Logger log = Logger.getLogger(Module.class);

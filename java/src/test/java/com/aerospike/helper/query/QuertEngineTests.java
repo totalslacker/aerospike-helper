@@ -5,7 +5,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({ SelectorTest.class, UpdatorTest.class })
+@SuiteClasses({ SelectorTest.class, FlightsTest.class, UpdatorTest.class })
 public class QuertEngineTests {
 
 }

@@ -47,6 +47,7 @@ public class Qualifier implements Map<String, Object>{
 		return (Value) internalMap.get(VALUE2);
 	}
 
+	@SuppressWarnings("deprecation")
 	public Filter asFilter(){
 		FilterOperation op = getOperation();
 		switch (op) {
@@ -64,33 +65,37 @@ public class Qualifier implements Map<String, Object>{
 		FilterOperation op = getOperation();
 		switch (op) {
 		case EQ:
-			return String.format("rec['%s'] == %s", getField(),  value1);
+			return String.format("%s == %s", luaFieldString(getField()),  value1);
 		case NOTEQ:
-			return String.format("rec['%s'] ~= %s", getField(), value1);
+			return String.format("%s ~= %s", luaFieldString(getField()), value1);
 		case GT:
-			return String.format("rec['%s'] > %s", getField(), value1);
+			return String.format("%s > %s", luaFieldString(getField()), value1);
 		case GTEQ:
-			return String.format("rec['%s'] >= %s", getField(), value1);
+			return String.format("%s >= %s", luaFieldString(getField()), value1);
 		case LT:
-			return String.format("rec['%s'] < %s", getField(), value1);
+			return String.format("%s < %s", luaFieldString(getField()), value1);
 		case LTEQ:
-			return String.format("rec['%s'] <= %s", getField(), value1);
+			return String.format("%s <= %s", luaFieldString(getField()), value1);
 		case BETWEEN:
 			String value2 = luaValueString(getValue2());
-			return String.format("rec['%s'] >= %s and rec['%s'] <= %s  ", getField(), value1, getField(), value2);
+			return String.format("%s >= %s and %s <= %s  ", luaFieldString(getField()), value1, luaFieldString(getField()), value2);
 		case START_WITH:
-			return String.format("string.sub(rec['%s'],1,string.len(%s))==%s", getField(), value1, value1);			
+			return String.format("string.sub(%s,1,string.len(%s))==%s", luaFieldString(getField()), value1, value1);			
 		case ENDS_WITH:
-			return String.format("%s=='' or string.sub(rec['%s'],-string.len(%s))==%s", 
+			return String.format("%s=='' or string.sub(%s,-string.len(%s))==%s", 
 					value1,
-					getField(),
+					luaFieldString(getField()),
 					value1,
 					value1);			
 		}
 		return "";
 	}
+	
+	protected String luaFieldString(String field){
+		return String.format("rec['%s']", field);
+	}
 
-	private String luaValueString(Value value){
+	protected String luaValueString(Value value){
 		String res = null;
 		int type = value.getType();
 		switch (type) {
@@ -98,6 +103,9 @@ public class Qualifier implements Map<String, Object>{
 //			res = value.toString();
 //			break;
 //		case ParticleType.MAP:
+//			res = value.toString();
+//			break;
+//		case ParticleType.DOUBLE:
 //			res = value.toString();
 //			break;
 		case ParticleType.STRING:
@@ -209,5 +217,9 @@ public class Qualifier implements Map<String, Object>{
 		return internalMap.entrySet();
 	}
 
-
+	@Override
+	public String toString() {
+		String output = String.format("%s:%s:%s:%s",getField(), getOperation(), getValue1(), getValue2());
+		return output;
+	}
 }

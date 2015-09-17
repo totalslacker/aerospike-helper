@@ -49,14 +49,20 @@ end
 
 local function filter_record(rec, filterFuncStr, filterFunc)
   --dumpRecord(rec)
-  info(filterFuncStr)
+  --info(filterFuncStr)
   -- if there is no filter, select all records
   if filterFuncStr == nil then
     return true
   end
   -- if there was a filter specified, and was successfully compiled
   if filterFunc ~= nil then
-    local context = {rec = rec, selectedRec = false, string = string}
+    local context = {rec = rec, 
+                    selectedRec = false, 
+                    string = string, 
+                    generation = record.gen(rec),
+                    digest = record.digest(rec),
+                    set_name = record.setname(rec),
+                    expiry = record.ttl(rec)}
 
     -- sandbox the function
     setfenv(filterFunc, context)
@@ -133,7 +139,7 @@ function select_records(stream, origArgs)
     result["meta_data"]["digest"] = record.digest(rec)
     result["meta_data"]["generation"] = record.gen(rec)
     result["meta_data"]["set_name"] = record.setname(rec)
-    result["meta_data"]["ttl"] = record.ttl(rec)
+    result["meta_data"]["expiry"] = record.ttl(rec)
     return result
   end
 
@@ -168,7 +174,7 @@ function query_meta(stream, origArgs)
     result["meta_data"]["digest"] = record.digest(rec)
     result["meta_data"]["generation"] = record.gen(rec)
     result["meta_data"]["set_name"] = record.setname(rec)
-    result["meta_data"]["ttl"] = record.ttl(rec)
+    result["meta_data"]["expiry"] = record.ttl(rec)
       
     return result
   end

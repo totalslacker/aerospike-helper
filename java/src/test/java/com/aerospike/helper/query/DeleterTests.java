@@ -1,6 +1,5 @@
 package com.aerospike.helper.query;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -15,7 +14,7 @@ import com.aerospike.client.Key;
 import com.aerospike.client.Value;
 import com.aerospike.client.query.Statement;
 
-public class UpdatorTest {
+public class DeleterTests {
 	private static final String NAMESPACE = "test";
 	private static final String SET_NAME = "selector";
 	private static final int RECORD_COUNT = 100;
@@ -23,7 +22,6 @@ public class UpdatorTest {
 	int[] ages = new int[]{25,26,27,28,29};
 	String[] colours = new String[]{"blue","red","yellow","green","orange"};
 	String[] animals = new String[]{"cat","dog","mouse","snake","lion"};
-
 	@Before
 	public void setUp() throws Exception {
 		client = new AerospikeClient("172.28.128.6", 3000);
@@ -48,39 +46,6 @@ public class UpdatorTest {
 			this.client.delete(null, key);
 		}
 		client.close();
-	}
-
-	@Test
-	public void updateStartsWith() {
-		QueryEngine updator = new QueryEngine(client);
-		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.ENDS_WITH, Value.get("e"));
-		ArrayList<Bin> bins = new ArrayList<Bin>() {{
-		    add(new Bin("ending", "ends with e"));
-		}};
-		Statement stmt = new Statement();
-		stmt.setNamespace(NAMESPACE);
-		stmt.setSetName(SET_NAME);
-		Map<String, Long> counts = updator.update(stmt, bins, qual1);
-		//System.out.println(counts);
-		Assert.assertEquals((Long)40L, (Long)counts.get("read"));
-		Assert.assertEquals((Long)40L, (Long)counts.get("write"));
-	}
-	
-	@Test
-	public void updateEndsWith() throws IOException {
-		QueryEngine updator = new QueryEngine(client);
-		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("blue"));
-		Qualifier qual2 = new Qualifier("name", Qualifier.FilterOperation.START_WITH, Value.get("na"));
-		ArrayList<Bin> bins = new ArrayList<Bin>() {{
-		    add(new Bin("starting", "ends with e"));
-		}};
-		Statement stmt = new Statement();
-		stmt.setNamespace(NAMESPACE);
-		stmt.setSetName(SET_NAME);
-		Map<String, Long> counts = updator.update(stmt, bins, qual1, qual2);
-		//System.out.println(counts);
-		Assert.assertEquals((Long)20L, (Long)counts.get("read"));
-		Assert.assertEquals((Long)20L, (Long)counts.get("write"));
 	}
 
 }

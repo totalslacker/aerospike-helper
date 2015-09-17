@@ -15,13 +15,13 @@ import com.aerospike.client.Bin;
 import com.aerospike.client.Info;
 import com.aerospike.client.Key;
 import com.aerospike.client.Language;
+import com.aerospike.client.Record;
 import com.aerospike.client.Value;
 import com.aerospike.client.cluster.Node;
 import com.aerospike.client.policy.InfoPolicy;
 import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.client.query.Filter;
-import com.aerospike.client.query.IndexType;
 import com.aerospike.client.query.KeyRecord;
 import com.aerospike.client.query.RecordSet;
 import com.aerospike.client.query.ResultSet;
@@ -40,6 +40,8 @@ import com.aerospike.helper.query.Qualifier.FilterOperation;
  */
 public class QueryEngine implements Closeable{
 
+	private static final String AS_UTILITY_PATH = "as_utility.lua";
+
 	private static Logger log = Logger.getLogger(QueryEngine.class);
 
 	private AerospikeClient client;
@@ -49,6 +51,27 @@ public class QueryEngine implements Closeable{
 	private InfoPolicy infoPolicy;
 
 	private Map<String, Module> moduleCache;
+
+	public enum Meta
+	{	
+		KEY,
+		TTL,
+		EXPIRATION,
+		GENERATION;
+		
+		@Override
+		  public String toString() {
+		    switch(this) {
+		      case KEY: return "__Key";
+		      case TTL: return "__TTL";
+		      case EXPIRATION: return "__Expiration";
+		      case GENERATION: return "__generation";
+		      default: throw new IllegalArgumentException();
+		    }
+		  }
+	}
+	
+	
 	/**
 	 * The Query engine is constructed by passing in an existing 
 	 * AerospikeClient instance
@@ -101,7 +124,7 @@ public class QueryEngine implements Closeable{
 			originArgs.put("filterFuncStr", filterFuncStr);
 			String sortFuncStr = buildSortFunction(sortMap);
 			originArgs.put("sortFuncStr", sortFuncStr);
-			stmt.setAggregateFunction(this.getClass().getClassLoader(), "com/aerospike/helper/query/as_utility.lua", "as_utility", "select_records", Value.get(originArgs));
+			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, "as_utility", "select_records", Value.get(originArgs));
 			ResultSet resultSet = this.client.queryAggregate(null, stmt);
 			results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
 		} else {
@@ -130,16 +153,42 @@ public class QueryEngine implements Closeable{
 	 * @return
 	 */
 	public KeyRecordIterator select(Statement stmt, Qualifier... qualifiers){
+		return select(stmt, false, qualifiers);
+	}
+	public KeyRecordIterator select(Statement stmt, boolean metaOnly, Qualifier... qualifiers){
 		KeyRecordIterator results = null;
-
+		/*
+		 * no filters
+		 */
 		if (qualifiers == null || qualifiers.length == 0)  {
 			RecordSet recordSet = this.client.query(null, stmt);
 			results = new KeyRecordIterator(stmt.getNamespace(), recordSet);
+			return results;
 		}
-
+		/*
+		 * singleton using primary key
+		 */
+		if (qualifiers != null && qualifiers.length == 1 && qualifiers[0] instanceof KeyQualifier)  {
+			KeyQualifier kq = (KeyQualifier)qualifiers[0];
+			Key key = new Key(stmt.getNamespace(), stmt.getSetName(), kq.getValue1());
+			Record record = null;
+			if (metaOnly)
+				record = this.client.getHeader(null, key);
+			else
+				record = this.client.get(null, key, stmt.getBinNames());
+			KeyRecord keyRecord = new KeyRecord(key, record);
+			results = new KeyRecordIterator(stmt.getNamespace(), keyRecord);
+			return results;
+		}
+		/*
+		 *  query with filters
+		 */
 		Map<String, Object> originArgs = new HashMap<String, Object>();
 		originArgs.put("includeAllFields", 1);
-		stmt.setAggregateFunction(this.getClass().getClassLoader(), "com/aerospike/helper/udf/as_utility.lua", "as_utility", "select_records", Value.get(originArgs));
+		if (metaOnly)
+			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, "as_utility", "query_meta", Value.get(originArgs));
+		else
+			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, "as_utility", "select_records", Value.get(originArgs));
 
 		for (int i = 0; i < qualifiers.length; i++){
 			Qualifier qualifier = qualifiers[i];
@@ -186,6 +235,11 @@ public class QueryEngine implements Closeable{
 		this.client.put(this.insertPolicy, key, bins.toArray(new Bin[0]));	
 
 	}
+	public void insert(Statement stmt, KeyQualifier keyQualifier, List<Bin> bins){
+		Key key = new Key(stmt.getNamespace(), stmt.getSetName(), keyQualifier.getValue1());
+		this.client.put(this.insertPolicy, key, bins.toArray(new Bin[0]));	
+
+	}
 
 
 	/*
@@ -195,30 +249,8 @@ public class QueryEngine implements Closeable{
 	 * 
 	 * ***************************************************** 
 	 */
-	public Map<String, Long> update(String namespace, String set, List<Bin> bins, Filter filter, Qualifier... qualifiers){
-		Statement stmt = new Statement();
-		stmt.setNamespace(namespace);
-		stmt.setSetName(set);
-		if (filter != null)
-			stmt.setFilters(filter);
-		return update(stmt, bins, qualifiers);	
-
-	}
 	public Map<String, Long> update(Statement stmt, List<Bin> bins, Qualifier... qualifiers){
-		KeyRecordIterator results = null;
-
-		if (qualifiers != null && qualifiers.length > 0) {
-			Map<String, Object> originArgs = new HashMap<String, Object>();
-			originArgs.put("includeAllFields", 1);
-			String filterFuncStr = buildFilterFunction(qualifiers);
-			originArgs.put("filterFuncStr", filterFuncStr);
-			stmt.setAggregateFunction(this.getClass().getClassLoader(), "com/aerospike/helper/udf/as_utility.lua", "as_utility", "query_meta", Value.get(originArgs));
-			ResultSet resultSet = this.client.queryAggregate(null, stmt);
-			results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
-		} else {
-			RecordSet recordSet = this.client.query(null, stmt);
-			results = new KeyRecordIterator(stmt.getNamespace(), recordSet);
-		} 
+		KeyRecordIterator results = select(stmt, true, qualifiers);
 		return update(results, bins);
 	}
 
@@ -250,34 +282,21 @@ public class QueryEngine implements Closeable{
 	 * 
 	 * ***************************************************** 
 	 */
-	public Map<String, Long> delete(String namespace, String set, List<Bin> bins, Filter filter, Qualifier... qualifiers){
-		Statement stmt = new Statement();
-		stmt.setNamespace(namespace);
-		stmt.setSetName(set);
-		if (filter != null)
-			stmt.setFilters(filter);
-		return update(stmt, bins, qualifiers);	
-
-	}
-	public Map<String, Long> delete(Statement stmt, List<Bin> bins, Qualifier... qualifiers){
-		KeyRecordIterator results = null;
-
-		if (qualifiers != null && qualifiers.length > 0) {
-			Map<String, Object> originArgs = new HashMap<String, Object>();
-			originArgs.put("includeAllFields", 1);
-			String filterFuncStr = buildFilterFunction(qualifiers);
-			originArgs.put("filterFuncStr", filterFuncStr);
-			stmt.setAggregateFunction(this.getClass().getClassLoader(), "com/aerospike/helper/udf/as_utility.lua", "as_utility", "query_meta", Value.get(originArgs));
-			ResultSet resultSet = this.client.queryAggregate(null, stmt);
-			results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
-		} else {
-			RecordSet recordSet = this.client.query(null, stmt);
-			results = new KeyRecordIterator(stmt.getNamespace(), recordSet);
-		} 
-		return update(results, bins);
+	public Map<String, Long> delete(Statement stmt, Qualifier... qualifiers){
+		if (qualifiers.length == 1 && qualifiers[0] instanceof KeyQualifier){
+			KeyQualifier keyQualifier = (KeyQualifier) qualifiers[0];
+			Key key = new Key(stmt.getNamespace(), stmt.getSetName(), keyQualifier.getValue1());
+			this.client.delete(null, key);
+			Map<String, Long> map = new HashMap<String, Long>();
+			map.put("read", 1L);
+			map.put("write", 1L);
+			return map;
+		}
+		KeyRecordIterator results = select(stmt, true, qualifiers);
+		return delete(results);
 	}
 
-	private Map<String, Long> delete(KeyRecordIterator results, List<Bin> bins){
+	private Map<String, Long> delete(KeyRecordIterator results){
 		long readCount = 0;
 		long updateCount = 0;
 		while (results.hasNext()){
@@ -307,7 +326,9 @@ public class QueryEngine implements Closeable{
 	private String buildFilterFunction(Qualifier[] qualifiers) {
 		StringBuilder sb = new StringBuilder("if ");
 		for (int i = 0; i < qualifiers.length; i++){
-			if (qualifiers[i] == null)
+			if (qualifiers[i] == null) //Skip nulls
+				continue;
+			if (qualifiers[i] instanceof KeyQualifier) //Skip primary key -- should not happen
 				continue;
 			sb.append(qualifiers[i].luaFilterString());
 			if (qualifiers.length > 1 && i < (qualifiers.length -1) )
@@ -322,7 +343,7 @@ public class QueryEngine implements Closeable{
 		if (getModule("as_utility.lua") == null){ // register the as_utility udf module
 
 			this.client.register(null, this.getClass().getClassLoader(), 
-					"com/aerospike/helper/udf/as_utility.lua", 
+					AS_UTILITY_PATH, 
 					"as_utility.lua", Language.LUA);
 
 		}
