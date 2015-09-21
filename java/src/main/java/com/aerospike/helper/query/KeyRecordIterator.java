@@ -74,6 +74,7 @@ public class KeyRecordIterator implements Iterator<KeyRecord>, Closeable {
 			return false;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public KeyRecord next() {
 		KeyRecord keyRecord = null;
@@ -81,7 +82,7 @@ public class KeyRecordIterator implements Iterator<KeyRecord>, Closeable {
 		if (this.recordSetIterator != null) {
 			keyRecord = this.recordSetIterator.next();
 		} else if (this.resultSetIterator != null) {
-			Map<String, Object> map = (Map) this.resultSetIterator.next();
+			Map<String, Object> map = (Map<String, Object>) this.resultSetIterator.next();
 			Map<String,Object> meta = (Map<String, Object>) map.get(META_DATA);
 			map.remove(META_DATA);
 			Map<String,Object> binMap = new HashMap<String, Object>(map);

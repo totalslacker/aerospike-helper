@@ -2,6 +2,7 @@ package com.aerospike.helper.query;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import com.aerospike.client.query.ResultSet;
 import com.aerospike.client.query.Statement;
 import com.aerospike.helper.model.Index;
 import com.aerospike.helper.model.Module;
+import com.aerospike.helper.model.Namespace;
 import com.aerospike.helper.query.Qualifier.FilterOperation;
 /**
  * This class provides a multi-filter query engine that
@@ -40,6 +42,8 @@ import com.aerospike.helper.query.Qualifier.FilterOperation;
  */
 public class QueryEngine implements Closeable{
 
+	private static final String QUERY_MODULE = "as_utility";
+
 	private static final String AS_UTILITY_PATH = "as_utility.lua";
 
 	private static Logger log = Logger.getLogger(QueryEngine.class);
@@ -48,9 +52,11 @@ public class QueryEngine implements Closeable{
 	private Map<String, Index> indexCache;
 	public WritePolicy updatePolicy;
 	public WritePolicy insertPolicy;
-	private InfoPolicy infoPolicy;
+	public InfoPolicy infoPolicy;
 
 	private Map<String, Module> moduleCache;
+
+	private TreeMap<String, Namespace> namespaceCache;
 
 	public enum Meta
 	{	
@@ -58,20 +64,20 @@ public class QueryEngine implements Closeable{
 		TTL,
 		EXPIRATION,
 		GENERATION;
-		
+
 		@Override
-		  public String toString() {
-		    switch(this) {
-		      case KEY: return "__Key";
-		      case TTL: return "__TTL";
-		      case EXPIRATION: return "__Expiration";
-		      case GENERATION: return "__generation";
-		      default: throw new IllegalArgumentException();
-		    }
-		  }
+		public String toString() {
+			switch(this) {
+			case KEY: return "__Key";
+			case TTL: return "__TTL";
+			case EXPIRATION: return "__Expiration";
+			case GENERATION: return "__generation";
+			default: throw new IllegalArgumentException();
+			}
+		}
 	}
-	
-	
+
+
 	/**
 	 * The Query engine is constructed by passing in an existing 
 	 * AerospikeClient instance
@@ -124,7 +130,7 @@ public class QueryEngine implements Closeable{
 			originArgs.put("filterFuncStr", filterFuncStr);
 			String sortFuncStr = buildSortFunction(sortMap);
 			originArgs.put("sortFuncStr", sortFuncStr);
-			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, "as_utility", "select_records", Value.get(originArgs));
+			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "select_records", Value.get(originArgs));
 			ResultSet resultSet = this.client.queryAggregate(null, stmt);
 			results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
 		} else {
@@ -171,13 +177,18 @@ public class QueryEngine implements Closeable{
 		if (qualifiers != null && qualifiers.length == 1 && qualifiers[0] instanceof KeyQualifier)  {
 			KeyQualifier kq = (KeyQualifier)qualifiers[0];
 			Key key = new Key(stmt.getNamespace(), stmt.getSetName(), kq.getValue1());
+			//System.out.println(kq.getValue1());
 			Record record = null;
 			if (metaOnly)
 				record = this.client.getHeader(null, key);
 			else
 				record = this.client.get(null, key, stmt.getBinNames());
-			KeyRecord keyRecord = new KeyRecord(key, record);
-			results = new KeyRecordIterator(stmt.getNamespace(), keyRecord);
+			if (record == null){
+				results = new KeyRecordIterator(stmt.getNamespace());
+			} else {
+				KeyRecord keyRecord = new KeyRecord(key, record);
+				results = new KeyRecordIterator(stmt.getNamespace(), keyRecord);
+			}
 			return results;
 		}
 		/*
@@ -186,9 +197,9 @@ public class QueryEngine implements Closeable{
 		Map<String, Object> originArgs = new HashMap<String, Object>();
 		originArgs.put("includeAllFields", 1);
 		if (metaOnly)
-			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, "as_utility", "query_meta", Value.get(originArgs));
+			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "query_meta", Value.get(originArgs));
 		else
-			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, "as_utility", "select_records", Value.get(originArgs));
+			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "select_records", Value.get(originArgs));
 
 		for (int i = 0; i < qualifiers.length; i++){
 			Qualifier qualifier = qualifiers[i];
@@ -214,11 +225,11 @@ public class QueryEngine implements Closeable{
 		Index index = this.indexCache.get(qualifier.getField());
 		if (index == null)
 			return false;
-		
+
 		FilterOperation operation = qualifier.getOperation();
 		if (operation != FilterOperation.EQ && operation != FilterOperation.BETWEEN)
 			return false;
-		
+
 		return false;
 	}
 
@@ -340,11 +351,11 @@ public class QueryEngine implements Closeable{
 
 
 	private void registerUDF() {
-		if (getModule("as_utility.lua") == null){ // register the as_utility udf module
+		if (getModule(QUERY_MODULE+".lua") == null){ // register the as_utility udf module
 
 			this.client.register(null, this.getClass().getClassLoader(), 
 					AS_UTILITY_PATH, 
-					"as_utility.lua", Language.LUA);
+					QUERY_MODULE+".lua", Language.LUA);
 
 		}
 	}
@@ -357,29 +368,91 @@ public class QueryEngine implements Closeable{
 	}
 
 	public void refreshCluster(){
-		Node[] nodes = client.getNodes();
-		for (Node node : nodes){
-			try {
-				refreshIndexes(node);
-				refreshModules(node);
-				break;
-			} catch (AerospikeException e) {
-				log.error("Error geting Index informaton", e);
-			}	
+		refreshNamespaces();
+		refreshIndexes();
+		refreshModules();
+	}
+	
+	public synchronized void refreshNamespaces(){
+		/*
+		 * cache namespaces
+		 */
+		if (this.namespaceCache == null){
+			this.namespaceCache = new TreeMap<String, Namespace>();
+			Node[] nodes = client.getNodes();
+			for (Node node : nodes){
+				try {
+					String namespaceString = Info.request(getInfoPolicy(), node, "namespaces");
+					if (!namespaceString.isEmpty()){
+						String[] namespaceList = namespaceString.split(";");
+						for (String namespace : namespaceList){
+							Namespace ns = this.namespaceCache.get(namespace);
+							if (ns == null){
+								ns = new Namespace(namespace);
+								this.namespaceCache.put(namespace, ns);
+							}
+							refreshNamespaceData(node, ns);
+						}
+					}
+				} catch (AerospikeException e) {
+					log.error("Error geting Namespaces ", e);
+				}	
+
+			}
 		}
 	}
-	public synchronized void refreshIndexes(Node node){
+
+	public void refreshNamespaceData(Node node, Namespace namespace){
+		/*
+		 * refresh namespace data
+		 */
+		try {
+			String nameSpaceString = Info.request(infoPolicy, node, "namespace/"+namespace);
+			namespace.mergeNamespaceInfo(nameSpaceString);
+			String setsString = Info.request(infoPolicy, node, "sets/"+namespace);
+			if (!setsString.isEmpty()){
+				String[] sets = setsString.split(";");
+				for (String setData : sets) {
+					namespace.mergeSet(setData);
+				}
+			}
+		} catch (AerospikeException e) {
+			log.error("Error geting Namespace details", e);
+		}	
+	}
+
+	public Namespace getNamespace(String namespace) {
+		return namespaceCache.get(namespace);
+	}
+
+	public Collection<Namespace> getNamespaces() {
+		return namespaceCache.values();
+	}
+
+	
+	public synchronized void refreshIndexes(){
 		/*
 		 * cache index by Bin name
 		 */
 		if (this.indexCache == null)
 			this.indexCache = new TreeMap<String, Index>();
-		String indexString = Info.request(getInfoPolicy(), node, "sindex");
-		if (!indexString.isEmpty()){
-			String[] indexList = indexString.split(";");
-			for (String oneIndexString : indexList){
-				Index index = new Index(oneIndexString);	
-				this.indexCache.put(index.getBin(), index);
+
+		Node[] nodes = client.getNodes();
+		for (Node node : nodes){
+			if (node.isActive()) {
+				try {
+					String indexString = Info.request(getInfoPolicy(), node, "sindex");
+					if (!indexString.isEmpty()){
+						String[] indexList = indexString.split(";");
+						for (String oneIndexString : indexList){
+							Index index = new Index(oneIndexString);	
+							this.indexCache.put(index.getBin(), index);
+						}
+					}
+					break;
+				} catch (AerospikeException e) {
+					log.error("Error geting Index informaton", e);
+				}	
 			}
 		}
 	}
@@ -388,17 +461,23 @@ public class QueryEngine implements Closeable{
 		return this.indexCache.get(binName);
 	}
 
-	public synchronized void refreshModules(Node node){
+	public synchronized void refreshModules(){
 		if (this.moduleCache == null)
 			this.moduleCache = new TreeMap<String, Module>();
-		String packagesString = Info.request(infoPolicy, node, "udf-list");
-		if (!packagesString.isEmpty()){
-			String[] packagesList = packagesString.split(";");
-			for (String pkgString : packagesList){
-				Module module = new Module(pkgString);
-				String udfString = Info.request(infoPolicy, node, "udf-get:filename=" + module.getName());
-				module.setDetailInfo(udfString);//gen=qgmyp0d8hQNvJdnR42X3BXgUGPE=;type=LUA;recordContent=bG9jYWwgZnVuY3Rpb24gcHV0QmluKHIsbmFtZSx2YWx1ZSkKICAgIGlmIG5vdCBhZXJvc3Bpa2U6ZXhpc3RzKHIpIHRoZW4gYWVyb3NwaWtlOmNyZWF0ZShyKSBlbmQKICAgIHJbbmFtZV0gPSB2YWx1ZQogICAgYWVyb3NwaWtlOnVwZGF0ZShyKQplbmQKCi0tIFNldCBhIHBhcnRpY3VsYXIgYmluCmZ1bmN0aW9uIHdyaXRlQmluKHIsbmFtZSx2YWx1ZSkKICAgIHB1dEJpbihyLG5hbWUsdmFsdWUpCmVuZAoKLS0gR2V0IGEgcGFydGljdWxhciBiaW4KZnVuY3Rpb24gcmVhZEJpbihyLG5hbWUpCiAgICByZXR1cm4gcltuYW1lXQplbmQKCi0tIFJldHVybiBnZW5lcmF0aW9uIGNvdW50IG9mIHJlY29yZApmdW5jdGlvbiBnZXRHZW5lcmF0aW9uKHIpCiAgICByZXR1cm4gcmVjb3JkLmdlbihyKQplbmQKCi0tIFVwZGF0ZSByZWNvcmQgb25seSBpZiBnZW4gaGFzbid0IGNoYW5nZWQKZnVuY3Rpb24gd3JpdGVJZkdlbmVyYXRpb25Ob3RDaGFuZ2VkKHIsbmFtZSx2YWx1ZSxnZW4pCiAgICBpZiByZWNvcmQuZ2VuKHIpID09IGdlbiB0aGVuCiAgICAgICAgcltuYW1lXSA9IHZhbHVlCiAgICAgICAgYWVyb3NwaWtlOnVwZGF0ZShyKQogICAgZW5kCmVuZAoKLS0gU2V0IGEgcGFydGljdWxhciBiaW4gb25seSBpZiByZWNvcmQgZG9lcyBub3QgYWxyZWFkeSBleGlzdC4KZnVuY3Rpb24gd3JpdGVVbmlxdWUocixuYW1lLHZhbHVlKQogICAgaWYgbm90IGFlcm9zcGlrZTpleGlzdHMocikgdGhlbiAKICAgICAgICBhZXJvc3Bpa2U6Y3JlYXRlKHIpIAogICAgICAgIHJbbmFtZV0gPSB2YWx1ZQogICAgICAgIGFlcm9zcGlrZTp1cGRhdGUocikKICAgIGVuZAplbmQKCi0tIFZhbGlkYXRlIHZhbHVlIGJlZm9yZSB3cml0aW5nLgpmdW5jdGlvbiB3cml0ZVdpdGhWYWxpZGF0aW9uKHIsbmFtZSx2YWx1ZSkKICAgIGlmICh2YWx1ZSA+PSAxIGFuZCB2YWx1ZSA8PSAxMCkgdGhlbgogICAgICAgIHB1dEJpbihyLG5hbWUsdmFsdWUpCiAgICBlbHNlCiAgICAgICAgZXJyb3IoIjEwMDA6SW52YWxpZCB2YWx1ZSIpIAogICAgZW5kCmVuZAoKLS0gUmVjb3JkIGNvbnRhaW5zIHR3byBpbnRlZ2VyIGJpbnMsIG5hbWUxIGFuZCBuYW1lMi4KLS0gRm9yIG5hbWUxIGV2ZW4gaW50ZWdlcnMsIGFkZCB2YWx1ZSB0byBleGlzdGluZyBuYW1lMSBiaW4uCi0tIEZvciBuYW1lMSBpbnRlZ2VycyB3aXRoIGEgbXVsdGlwbGUgb2YgNSwgZGVsZXRlIG5hbWUyIGJpbi4KLS0gRm9yIG5hbWUxIGludGVnZXJzIHdpdGggYSBtdWx0aXBsZSBvZiA5LCBkZWxldGUgcmVjb3JkLiAKZnVuY3Rpb24gcHJvY2Vzc1JlY29yZChyLG5hbWUxLG5hbWUyLGFkZFZhbHVlKQogICAgbG9jYWwgdiA9IHJbbmFtZTFdCgogICAgaWYgKHYgJSA5ID09IDApIHRoZW4KICAgICAgICBhZXJvc3Bpa2U6cmVtb3ZlKHIpCiAgICAgICAgcmV0dXJuCiAgICBlbmQKCiAgICBpZiAodiAlIDUgPT0gMCkgdGhlbgogICAgICAgIHJbbmFtZTJdID0gbmlsCiAgICAgICAgYWVyb3NwaWtlOnVwZGF0ZShyKQogICAgICAgIHJldHVybgogICAgZW5kCgogICAgaWYgKHYgJSAyID09IDApIHRoZW4KICAgICAgICByW25hbWUxXSA9IHYgKyBhZGRWYWx1ZQogICAgICAgIGFlcm9zcGlrZTp1cGRhdGUocikKICAgIGVuZAplbmQKCi0tIFNldCBleHBpcmF0aW9uIG9mIHJlY29yZAotLSBmdW5jdGlvbiBleHBpcmUocix0dGwpCi0tICAgIGlmIHJlY29yZC50dGwocikgPT0gZ2VuIHRoZW4KLS0gICAgICAgIHJbbmFtZV0gPSB2YWx1ZQotLSAgICAgICAgYWVyb3NwaWtlOnVwZGF0ZShyKQotLSAgICBlbmQKLS0gZW5kCg==;
-				this.moduleCache.put(module.getName(), module);
+		Node[] nodes = client.getNodes();
+		for (Node node : nodes){
+			if (node.isActive()){
+				String packagesString = Info.request(infoPolicy, node, "udf-list");
+				if (!packagesString.isEmpty()){
+					String[] packagesList = packagesString.split(";");
+					for (String pkgString : packagesList){
+						Module module = new Module(pkgString);
+						String udfString = Info.request(infoPolicy, node, "udf-get:filename=" + module.getName());
+						module.setDetailInfo(udfString);//gen=qgmyp0d8hQNvJdnR42X3BXgUGPE=;type=LUA;recordContent=bG9jYWwgZnVuY3Rpb24gcHV0QmluKHIsbmFtZSx2YWx1ZSkKICAgIGlmIG5vdCBhZXJvc3Bpa2U6ZXhpc3RzKHIpIHRoZW4gYWVyb3NwaWtlOmNyZWF0ZShyKSBlbmQKICAgIHJbbmFtZV0gPSB2YWx1ZQogICAgYWVyb3NwaWtlOnVwZGF0ZShyKQplbmQKCi0tIFNldCBhIHBhcnRpY3VsYXIgYmluCmZ1bmN0aW9uIHdyaXRlQmluKHIsbmFtZSx2YWx1ZSkKICAgIHB1dEJpbihyLG5hbWUsdmFsdWUpCmVuZAoKLS0gR2V0IGEgcGFydGljdWxhciBiaW4KZnVuY3Rpb24gcmVhZEJpbihyLG5hbWUpCiAgICByZXR1cm4gcltuYW1lXQplbmQKCi0tIFJldHVybiBnZW5lcmF0aW9uIGNvdW50IG9mIHJlY29yZApmdW5jdGlvbiBnZXRHZW5lcmF0aW9uKHIpCiAgICByZXR1cm4gcmVjb3JkLmdlbihyKQplbmQKCi0tIFVwZGF0ZSByZWNvcmQgb25seSBpZiBnZW4gaGFzbid0IGNoYW5nZWQKZnVuY3Rpb24gd3JpdGVJZkdlbmVyYXRpb25Ob3RDaGFuZ2VkKHIsbmFtZSx2YWx1ZSxnZW4pCiAgICBpZiByZWNvcmQuZ2VuKHIpID09IGdlbiB0aGVuCiAgICAgICAgcltuYW1lXSA9IHZhbHVlCiAgICAgICAgYWVyb3NwaWtlOnVwZGF0ZShyKQogICAgZW5kCmVuZAoKLS0gU2V0IGEgcGFydGljdWxhciBiaW4gb25seSBpZiByZWNvcmQgZG9lcyBub3QgYWxyZWFkeSBleGlzdC4KZnVuY3Rpb24gd3JpdGVVbmlxdWUocixuYW1lLHZhbHVlKQogICAgaWYgbm90IGFlcm9zcGlrZTpleGlzdHMocikgdGhlbiAKICAgICAgICBhZXJvc3Bpa2U6Y3JlYXRlKHIpIAogICAgICAgIHJbbmFtZV0gPSB2YWx1ZQogICAgICAgIGFlcm9zcGlrZTp1cGRhdGUocikKICAgIGVuZAplbmQKCi0tIFZhbGlkYXRlIHZhbHVlIGJlZm9yZSB3cml0aW5nLgpmdW5jdGlvbiB3cml0ZVdpdGhWYWxpZGF0aW9uKHIsbmFtZSx2YWx1ZSkKICAgIGlmICh2YWx1ZSA+PSAxIGFuZCB2YWx1ZSA8PSAxMCkgdGhlbgogICAgICAgIHB1dEJpbihyLG5hbWUsdmFsdWUpCiAgICBlbHNlCiAgICAgICAgZXJyb3IoIjEwMDA6SW52YWxpZCB2YWx1ZSIpIAogICAgZW5kCmVuZAoKLS0gUmVjb3JkIGNvbnRhaW5zIHR3byBpbnRlZ2VyIGJpbnMsIG5hbWUxIGFuZCBuYW1lMi4KLS0gRm9yIG5hbWUxIGV2ZW4gaW50ZWdlcnMsIGFkZCB2YWx1ZSB0byBleGlzdGluZyBuYW1lMSBiaW4uCi0tIEZvciBuYW1lMSBpbnRlZ2VycyB3aXRoIGEgbXVsdGlwbGUgb2YgNSwgZGVsZXRlIG5hbWUyIGJpbi4KLS0gRm9yIG5hbWUxIGludGVnZXJzIHdpdGggYSBtdWx0aXBsZSBvZiA5LCBkZWxldGUgcmVjb3JkLiAKZnVuY3Rpb24gcHJvY2Vzc1JlY29yZChyLG5hbWUxLG5hbWUyLGFkZFZhbHVlKQogICAgbG9jYWwgdiA9IHJbbmFtZTFdCgogICAgaWYgKHYgJSA5ID09IDApIHRoZW4KICAgICAgICBhZXJvc3Bpa2U6cmVtb3ZlKHIpCiAgICAgICAgcmV0dXJuCiAgICBlbmQKCiAgICBpZiAodiAlIDUgPT0gMCkgdGhlbgogICAgICAgIHJbbmFtZTJdID0gbmlsCiAgICAgICAgYWVyb3NwaWtlOnVwZGF0ZShyKQogICAgICAgIHJldHVybgogICAgZW5kCgogICAgaWYgKHYgJSAyID09IDApIHRoZW4KICAgICAgICByW25hbWUxXSA9IHYgKyBhZGRWYWx1ZQogICAgICAgIGFlcm9zcGlrZTp1cGRhdGUocikKICAgIGVuZAplbmQKCi0tIFNldCBleHBpcmF0aW9uIG9mIHJlY29yZAotLSBmdW5jdGlvbiBleHBpcmUocix0dGwpCi0tICAgIGlmIHJlY29yZC50dGwocikgPT0gZ2VuIHRoZW4KLS0gICAgICAgIHJbbmFtZV0gPSB2YWx1ZQotLSAgICAgICAgYWVyb3NwaWtlOnVwZGF0ZShyKQotLSAgICBlbmQKLS0gZW5kCg==;
+						this.moduleCache.put(module.getName(), module);
+					}
+				}
+				break;
 			}
 		}
 	}

@@ -11,56 +11,27 @@ import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.Bin;
 import com.aerospike.client.Key;
 import com.aerospike.client.Value;
+import com.aerospike.client.policy.ClientPolicy;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.IndexType;
 import com.aerospike.client.query.KeyRecord;
 import com.aerospike.client.query.Statement;
 
-public class SelectorTest {
-	private static final String NAMESPACE = "test";
-	private static final String SET_NAME = "selector";
-	private static final int RECORD_COUNT = 100;
-	AerospikeClient client;
-	QueryEngine selector;
-	int[] ages = new int[]{25,26,27,28,29};
-	String[] colours = new String[]{"blue","red","yellow","green","orange"};
-	String[] animals = new String[]{"cat","dog","mouse","snake","lion"};
+public class SelectorTest extends HelperTest{
 
-	@Before
-	public void setUp() throws Exception {
-		client = new AerospikeClient("172.28.128.6", 3000);
-		selector = new QueryEngine(client);
-		selector.refreshCluster();
-		int i = 0;
-		for (int x = 1; x <= RECORD_COUNT; x++){
-			Key key = new Key(NAMESPACE, SET_NAME, "selector-test:"+ x);
-			Bin name = new Bin("name", "name:" + x);
-			Bin age = new Bin("age", ages[i]);
-			Bin colour = new Bin("color", colours[i]);
-			Bin animal = new Bin("animal", animals[i]);
-			this.client.put(null, key, name, age, colour, animal);
-			i++;
-			if ( i == 5)
-				i = 0;
-		}
+
+
+	public SelectorTest(boolean useAuth) {
+		super(useAuth);
 	}
-
-	@After
-	public void tearDown() throws Exception {
-		for (int x = 1; x <= RECORD_COUNT; x++){
-			Key key = new Key(NAMESPACE, SET_NAME, "selector-test:"+ x);
-			this.client.delete(null, key);
-		}
-		selector.close();
-	}
-
+	
 	@Test
 	public void selectOne() throws IOException {
 		Statement stmt = new Statement();
-		stmt.setNamespace(NAMESPACE);
-		stmt.setSetName(SET_NAME);
+		stmt.setNamespace(QueryEngineTests.NAMESPACE);
+		stmt.setSetName(QueryEngineTests.SET_NAME);
 		KeyQualifier kq = new KeyQualifier(Value.get("selector-test:3"));
-		KeyRecordIterator it = selector.select(stmt, kq);
+		KeyRecordIterator it = queryEngine.select(stmt, kq);
 		int count = 0;
 		while (it.hasNext()){
 			KeyRecord rec = it.next();
@@ -71,11 +42,26 @@ public class SelectorTest {
 //		System.out.println(count);
 		Assert.assertEquals(1, count);
 	}
+
+	@Test
+	public void selectAll() throws IOException {
+		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, null);
+		int count = 0;
+		while (it.hasNext()){
+			KeyRecord rec = it.next();
+			count++;
+//			System.out.println(rec);
+		}
+		it.close();
+//		System.out.println(count);
+		Assert.assertEquals(QueryEngineTests.RECORD_COUNT, count);
+	}
+
 	@Test
 	public void selectOnIndex() throws IOException {
-		this.client.createIndex(null, NAMESPACE, SET_NAME, "age_index", "age", IndexType.NUMERIC);
+		this.client.createIndex(null, QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "age_index", "age", IndexType.NUMERIC);
 		Filter filter = Filter.range("age", 28, 29);
-		KeyRecordIterator it = selector.select(NAMESPACE, SET_NAME, filter);
+		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, filter);
 		int count = 0;
 		while (it.hasNext()){
 			KeyRecord rec = it.next();
@@ -89,7 +75,7 @@ public class SelectorTest {
 	@Test
 	public void selectStartsWith() throws IOException {
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.ENDS_WITH, Value.get("e"));
-		KeyRecordIterator it = selector.select(NAMESPACE, SET_NAME, null, qual1);
+		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, null, qual1);
 		int count = 0;
 		while (it.hasNext()){
 			KeyRecord rec = it.next();
@@ -104,7 +90,7 @@ public class SelectorTest {
 	public void selectEndsWith() throws IOException {
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("blue"));
 		Qualifier qual2 = new Qualifier("name", Qualifier.FilterOperation.START_WITH, Value.get("na"));
-		KeyRecordIterator it = selector.select(NAMESPACE, SET_NAME, null, qual1, qual2);
+		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, null, qual1, qual2);
 		int count = 0;
 		while (it.hasNext()){
 			KeyRecord rec = it.next();
@@ -117,10 +103,10 @@ public class SelectorTest {
 	}
 	@Test
 	public void selectOnIndexWithQualifiers() throws IOException {
-		this.client.createIndex(null, NAMESPACE, SET_NAME, "age_index", "age", IndexType.NUMERIC);
+		this.client.createIndex(null, QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "age_index", "age", IndexType.NUMERIC);
 		Filter filter = Filter.range("age", 25, 29);
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("blue"));
-		KeyRecordIterator it = selector.select(NAMESPACE, SET_NAME, filter, qual1);
+		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, filter, qual1);
 		int count = 0;
 		while (it.hasNext()){
 			KeyRecord rec = it.next();
@@ -133,11 +119,11 @@ public class SelectorTest {
 	}
 	@Test
 	public void selectWithQualifiersOnly() throws IOException {
-		this.client.createIndex(null, NAMESPACE, SET_NAME, "age_index", "age", IndexType.NUMERIC);
-		selector.refreshCluster();
+		this.client.createIndex(null, QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "age_index", "age", IndexType.NUMERIC);
+		queryEngine.refreshCluster();
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("green"));
 		Qualifier qual2 = new Qualifier("age", Qualifier.FilterOperation.BETWEEN, Value.get(28), Value.get(29));
-		KeyRecordIterator it = selector.select(NAMESPACE, SET_NAME, null, qual1, qual2);
+		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, null, qual1, qual2);
 		int count = 0;
 		while (it.hasNext()){
 			KeyRecord rec = it.next();
@@ -150,9 +136,9 @@ public class SelectorTest {
 	}
 	@Test
 	public void selectWithGeneration() throws IOException {
-		selector.refreshCluster();
+		queryEngine.refreshCluster();
 		Qualifier qual1 = new GenerationQualifier(Qualifier.FilterOperation.GTEQ, Value.get(1));
-		KeyRecordIterator it = selector.select(NAMESPACE, SET_NAME, null, qual1);
+		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, null, qual1);
 		//int count = 0;
 		while (it.hasNext()){
 			KeyRecord rec = it.next();
