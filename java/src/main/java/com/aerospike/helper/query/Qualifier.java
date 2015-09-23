@@ -8,7 +8,11 @@ import java.util.Set;
 import com.aerospike.client.Value;
 import com.aerospike.client.command.ParticleType;
 import com.aerospike.client.query.Filter;
-
+/**
+ * Generic Bin qualifier
+ * @author peter
+ *
+ */
 public class Qualifier implements Map<String, Object>{
 	private static final String FIELD = "field";
 	private static final String VALUE2 = "value2";
@@ -78,7 +82,8 @@ public class Qualifier implements Map<String, Object>{
 			return String.format("%s <= %s", luaFieldString(getField()), value1);
 		case BETWEEN:
 			String value2 = luaValueString(getValue2());
-			return String.format("%s >= %s and %s <= %s  ", luaFieldString(getField()), value1, luaFieldString(getField()), value2);
+			String fieldString = luaFieldString(getField()); 
+			return String.format("%s >= %s and %s <= %s  ", fieldString, value1, luaFieldString(getField()), value2);
 		case START_WITH:
 			return String.format("string.sub(%s,1,string.len(%s))==%s", luaFieldString(getField()), value1, value1);			
 		case ENDS_WITH:

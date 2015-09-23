@@ -42,21 +42,21 @@ import com.aerospike.helper.query.Qualifier.FilterOperation;
  */
 public class QueryEngine implements Closeable{
 
-	private static final String QUERY_MODULE = "as_utility";
+	protected static final String QUERY_MODULE = "as_utility";
 
-	private static final String AS_UTILITY_PATH = "as_utility.lua";
+	protected static final String AS_UTILITY_PATH = "as_utility.lua";
 
-	private static Logger log = Logger.getLogger(QueryEngine.class);
+	protected static Logger log = Logger.getLogger(QueryEngine.class);
 
-	private AerospikeClient client;
-	private Map<String, Index> indexCache;
+	protected AerospikeClient client;
+	protected Map<String, Index> indexCache;
 	public WritePolicy updatePolicy;
 	public WritePolicy insertPolicy;
 	public InfoPolicy infoPolicy;
 
-	private Map<String, Module> moduleCache;
+	protected Map<String, Module> moduleCache;
 
-	private TreeMap<String, Namespace> namespaceCache;
+	protected TreeMap<String, Namespace> namespaceCache;
 
 	public enum Meta
 	{	
@@ -230,7 +230,7 @@ public class QueryEngine implements Closeable{
 		if (operation != FilterOperation.EQ && operation != FilterOperation.BETWEEN)
 			return false;
 
-		return false;
+		return true;
 	}
 
 	/*
@@ -261,8 +261,18 @@ public class QueryEngine implements Closeable{
 	 * ***************************************************** 
 	 */
 	public Map<String, Long> update(Statement stmt, List<Bin> bins, Qualifier... qualifiers){
-		KeyRecordIterator results = select(stmt, true, qualifiers);
-		return update(results, bins);
+		if (qualifiers != null && qualifiers.length == 1 && qualifiers[0] instanceof KeyQualifier)  {
+			KeyQualifier kq = (KeyQualifier)qualifiers[0];
+			Key key = new Key(stmt.getNamespace(), stmt.getSetName(), kq.getValue1());
+			this.client.put(this.updatePolicy, key, bins.toArray(new Bin[0]));
+			Map<String, Long> result = new HashMap<String, Long>();
+			result.put("read", 1L);
+			result.put("write", 1L);
+			return result;
+		} else {
+			KeyRecordIterator results = select(stmt, true, qualifiers);
+			return update(results, bins);
+		}
 	}
 
 	private Map<String, Long> update(KeyRecordIterator results, List<Bin> bins){

@@ -18,6 +18,7 @@ package com.aerospike.helper.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -82,9 +83,8 @@ public class Namespace{
 		}
 	}
 
-	public Object[] getChildren() {
-		return Utils.concat(getValues().toArray(),
-				sets.values().toArray());
+	public Collection<Set> getSets() {
+		return sets.values();
 	}
 
 	public String getName() {
@@ -170,7 +170,7 @@ public class Namespace{
 		setInfo(info, values, true);
 	}
 
-	public Set getSet(String tableName) {
+	public Set findSet(String tableName) {
 		return this.sets.get(tableName);
 	}
 

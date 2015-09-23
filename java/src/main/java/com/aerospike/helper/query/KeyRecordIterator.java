@@ -13,7 +13,11 @@ import com.aerospike.client.Record;
 import com.aerospike.client.query.KeyRecord;
 import com.aerospike.client.query.RecordSet;
 import com.aerospike.client.query.ResultSet;
-
+/**
+ * Iterator for traversing a collection of KeyRecords
+ * @author peter
+ *
+ */
 public class KeyRecordIterator implements Iterator<KeyRecord>, Closeable {
 	private static final String META_DATA = "meta_data";
 	private static final String SET_NAME = "set_name";
