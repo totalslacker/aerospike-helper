@@ -1,3 +1,33 @@
+/* Copyright 2012-2015 Aerospike, Inc.
+ *
+ * Portions may be licensed to Aerospike, Inc. under one or more contributor
+ * license agreements.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+/* Copyright 2012-2015 Aerospike, Inc.
+ *
+ * Portions may be licensed to Aerospike, Inc. under one or more contributor
+ * license agreements.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.aerospike.helper.query;
 
 import java.util.Collection;
@@ -9,7 +39,18 @@ import com.aerospike.client.Value;
 import com.aerospike.client.command.ParticleType;
 import com.aerospike.client.query.Filter;
 /**
- * Generic Bin qualifier
+ * Generic Bin qualifier. It acts as a filter to exclude records that do not met this criteria.
+ * The operations supported are 
+ * <li>EQ - Equals</li>
+ * <li>GT - Greater than</li>
+ * <li>GTEQ - Greater than or equal to</li>
+ * <li>LT - Less than</li>
+ * <li>LTEQ - Less than or equal to</li>
+ * <li>NOTEQ - Not equal</li>
+ * <li>BETWEEN - Between two value (inclusive)</li>
+ * <li>START_WITH - A string that starts with</li>
+ * <li>ENDS_WITH - A string that ends with</li>
+ * 
  * @author peter
  *
  */
@@ -18,7 +59,7 @@ public class Qualifier implements Map<String, Object>{
 	private static final String VALUE2 = "value2";
 	private static final String VALUE1 = "value1";
 	private static final String OPERATION = "operation";
-	private Map<String, Object> internalMap;
+	protected Map<String, Object> internalMap;
 	public enum FilterOperation {
 		EQ, GT, GTEQ, LT, LTEQ, NOTEQ, BETWEEN, START_WITH, ENDS_WITH
 	}

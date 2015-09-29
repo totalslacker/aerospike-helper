@@ -14,13 +14,13 @@ import com.aerospike.client.Key;
 import com.aerospike.client.policy.ClientPolicy;
 @RunWith(Parameterized.class)
 public class HelperTest {
-	AerospikeClient client;
-	ClientPolicy clientPolicy;
-	QueryEngine queryEngine;
-	int[] ages = new int[]{25,26,27,28,29};
-	String[] colours = new String[]{"blue","red","yellow","green","orange"};
-	String[] animals = new String[]{"cat","dog","mouse","snake","lion"};
-	private boolean useAuth;
+	protected AerospikeClient client;
+	protected ClientPolicy clientPolicy;
+	protected QueryEngine queryEngine;
+	protected int[] ages = new int[]{25,26,27,28,29};
+	protected String[] colours = new String[]{"blue","red","yellow","green","orange"};
+	protected String[] animals = new String[]{"cat","dog","mouse","snake","lion"};
+	protected boolean useAuth;
 
 	public HelperTest(boolean useAuth){
 		this.useAuth = useAuth;

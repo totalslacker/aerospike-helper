@@ -1,3 +1,18 @@
+/* Copyright 2012-2015 Aerospike, Inc.
+ *
+ * Portions may be licensed to Aerospike, Inc. under one or more contributor
+ * license agreements.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 package com.aerospike.helper.query;
 
 import java.io.Closeable;
@@ -176,8 +191,8 @@ public class QueryEngine implements Closeable{
 		 */
 		if (qualifiers != null && qualifiers.length == 1 && qualifiers[0] instanceof KeyQualifier)  {
 			KeyQualifier kq = (KeyQualifier)qualifiers[0];
-			Key key = new Key(stmt.getNamespace(), stmt.getSetName(), kq.getValue1());
-			//System.out.println(kq.getValue1());
+			Key key = kq.makeKey(stmt.getNamespace(), stmt.getSetName());
+			//System.out.println(key);
 			Record record = null;
 			if (metaOnly)
 				record = this.client.getHeader(null, key);
@@ -243,11 +258,23 @@ public class QueryEngine implements Closeable{
 
 	public void insert(String namespace, String set, Key key, List<Bin> bins){
 
+		insert(namespace, set, key, bins, 0)	;
+
+	}
+	
+	public void insert(String namespace, String set, Key key, List<Bin> bins, int ttl){
+
 		this.client.put(this.insertPolicy, key, bins.toArray(new Bin[0]));	
 
 	}
+
 	public void insert(Statement stmt, KeyQualifier keyQualifier, List<Bin> bins){
-		Key key = new Key(stmt.getNamespace(), stmt.getSetName(), keyQualifier.getValue1());
+		insert(stmt, keyQualifier, bins, 0);
+	}
+
+	public void insert(Statement stmt, KeyQualifier keyQualifier, List<Bin> bins, int ttl){
+		Key key = keyQualifier.makeKey(stmt.getNamespace(), stmt.getSetName());
+//		Key key = new Key(stmt.getNamespace(), stmt.getSetName(), keyQualifier.getValue1());
 		this.client.put(this.insertPolicy, key, bins.toArray(new Bin[0]));	
 
 	}
@@ -262,8 +289,9 @@ public class QueryEngine implements Closeable{
 	 */
 	public Map<String, Long> update(Statement stmt, List<Bin> bins, Qualifier... qualifiers){
 		if (qualifiers != null && qualifiers.length == 1 && qualifiers[0] instanceof KeyQualifier)  {
-			KeyQualifier kq = (KeyQualifier)qualifiers[0];
-			Key key = new Key(stmt.getNamespace(), stmt.getSetName(), kq.getValue1());
+			KeyQualifier keyQualifier = (KeyQualifier)qualifiers[0];
+			Key key = keyQualifier.makeKey(stmt.getNamespace(), stmt.getSetName());
+//			Key key = new Key(stmt.getNamespace(), stmt.getSetName(), kq.getValue1());
 			this.client.put(this.updatePolicy, key, bins.toArray(new Bin[0]));
 			Map<String, Long> result = new HashMap<String, Long>();
 			result.put("read", 1L);
@@ -306,7 +334,7 @@ public class QueryEngine implements Closeable{
 	public Map<String, Long> delete(Statement stmt, Qualifier... qualifiers){
 		if (qualifiers.length == 1 && qualifiers[0] instanceof KeyQualifier){
 			KeyQualifier keyQualifier = (KeyQualifier) qualifiers[0];
-			Key key = new Key(stmt.getNamespace(), stmt.getSetName(), keyQualifier.getValue1());
+			Key key = keyQualifier.makeKey(stmt.getNamespace(), stmt.getSetName());
 			this.client.delete(null, key);
 			Map<String, Long> map = new HashMap<String, Long>();
 			map.put("read", 1L);
