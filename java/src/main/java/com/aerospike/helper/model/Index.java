@@ -23,7 +23,13 @@ import java.util.Map;
 import java.util.Set;
 
 import com.aerospike.client.query.IndexType;
-
+/**
+ * This class represents a Secondary Index
+ * created in the cluster.
+ * 
+ * @author peter
+ *
+ */
 public class Index {
 
 	protected Map<String, String> values;

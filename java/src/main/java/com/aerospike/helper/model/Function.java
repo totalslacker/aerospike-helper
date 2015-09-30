@@ -15,7 +15,12 @@
  * the License.
  */
 package com.aerospike.helper.model;
-
+/**
+ * This class represents a User Defined Function
+ * registered with a cluster
+ * @author peter
+ *
+ */
 public class Function
 {
 	private String name;

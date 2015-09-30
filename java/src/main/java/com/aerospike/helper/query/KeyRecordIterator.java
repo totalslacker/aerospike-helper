@@ -127,5 +127,10 @@ public class KeyRecordIterator implements Iterator<KeyRecord>, Closeable {
 	public void remove() {
 		
 	}
+	
+	@Override
+	public String toString() {
+		return this.namespace;
+	}
 
 }

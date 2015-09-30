@@ -63,10 +63,10 @@ public class FlightsTest {
 		while (it.hasNext()){
 			KeyRecord rec = it.next();
 			count++;
-//			System.out.println(rec);
+			//			System.out.println(rec);
 		}
 		it.close();
-//		System.out.println(count);
+		//		System.out.println(count);
 		Assert.assertEquals(62, count);
 	}
 	@Test
@@ -129,8 +129,33 @@ public class FlightsTest {
 		it.close();
 		long stop = System.currentTimeMillis();
 		System.out.println(String.format("Indexed Execution time:%d", stop-start));
-		
+
 		this.selector.client.dropIndex(null, "test", "flights", "flights_index");
 	}
 
+	@Test
+	public void selectWithGTLimit() throws IOException {
+
+		//select * from test.flights where DISTANCE > 400
+		Qualifier qual1 = new Qualifier("DISTANCE", Qualifier.FilterOperation.GT, Value.get(400));
+		Statement st = new Statement();
+		st.setNamespace(NAMESPACE);
+		st.setSetName(SET_NAME);
+		st.setBinNames("FL_DATE_BIN", "ORIGIN", "DEST", "CARRIER", "FL_NUM", "DISTANCE");
+		int count =0;
+		KeyRecordIterator it = selector.select(st, qual1);
+		try {
+			while (it.hasNext()){
+				count++;
+				KeyRecord rec = it.next();
+				long dist = rec.record.getLong("DISTANCE");
+				Assert.assertTrue(dist > 400);
+				if (count == 10)
+					break;
+			}
+		} finally {
+			it.close();
+		}
+		Assert.assertEquals(10, count);
+	}
 }

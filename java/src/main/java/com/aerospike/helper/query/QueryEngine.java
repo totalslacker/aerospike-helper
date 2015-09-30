@@ -211,10 +211,6 @@ public class QueryEngine implements Closeable{
 		 */
 		Map<String, Object> originArgs = new HashMap<String, Object>();
 		originArgs.put("includeAllFields", 1);
-		if (metaOnly)
-			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "query_meta", Value.get(originArgs));
-		else
-			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "select_records", Value.get(originArgs));
 
 		for (int i = 0; i < qualifiers.length; i++){
 			Qualifier qualifier = qualifiers[i];
@@ -230,6 +226,11 @@ public class QueryEngine implements Closeable{
 
 		String filterFuncStr = buildFilterFunction(qualifiers);
 		originArgs.put("filterFuncStr", filterFuncStr);
+		
+		if (metaOnly)
+			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "query_meta", Value.get(originArgs));
+		else
+			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "select_records", Value.get(originArgs));
 
 		ResultSet resultSet = this.client.queryAggregate(null, stmt);
 		results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
@@ -287,11 +288,17 @@ public class QueryEngine implements Closeable{
 	 * 
 	 * ***************************************************** 
 	 */
+	/**
+	 * The list of Bins will update each record that match the Qualifiers supplied.
+	 * @param stmt 
+	 * @param bins
+	 * @param qualifiers
+	 * @return
+	 */
 	public Map<String, Long> update(Statement stmt, List<Bin> bins, Qualifier... qualifiers){
 		if (qualifiers != null && qualifiers.length == 1 && qualifiers[0] instanceof KeyQualifier)  {
 			KeyQualifier keyQualifier = (KeyQualifier)qualifiers[0];
 			Key key = keyQualifier.makeKey(stmt.getNamespace(), stmt.getSetName());
-//			Key key = new Key(stmt.getNamespace(), stmt.getSetName(), kq.getValue1());
 			this.client.put(this.updatePolicy, key, bins.toArray(new Bin[0]));
 			Map<String, Long> result = new HashMap<String, Long>();
 			result.put("read", 1L);
@@ -352,10 +359,10 @@ public class QueryEngine implements Closeable{
 			KeyRecord keyRecord = results.next();
 			readCount++;
 			try {
-				client.delete(null, keyRecord.key);
-				updateCount++;
+				if (client.delete(null, keyRecord.key))
+					updateCount++;
 			} catch (AerospikeException e){
-				System.out.println(keyRecord.key);
+				log.error("Unexpected exception deleting "+ keyRecord.key, e);
 			}
 		}
 		Map<String, Long> map = new HashMap<String, Long>();
@@ -373,15 +380,18 @@ public class QueryEngine implements Closeable{
 
 
 	private String buildFilterFunction(Qualifier[] qualifiers) {
+		int count = 0;
 		StringBuilder sb = new StringBuilder("if ");
 		for (int i = 0; i < qualifiers.length; i++){
 			if (qualifiers[i] == null) //Skip nulls
 				continue;
 			if (qualifiers[i] instanceof KeyQualifier) //Skip primary key -- should not happen
 				continue;
-			sb.append(qualifiers[i].luaFilterString());
-			if (qualifiers.length > 1 && i < (qualifiers.length -1) )
+			if (count > 0)
 				sb.append(" and ");
+
+			sb.append(qualifiers[i].luaFilterString());
+			count++;
 		}
 		sb.append(" then selectedRec = true end");
 		return sb.toString();

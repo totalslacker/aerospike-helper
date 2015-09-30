@@ -23,7 +23,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
+/**
+ * This class represents a namespace 
+ * defined in the cluster.
+ * @author peter
+ *
+ */
 public class Namespace{
 	protected String name;
 	protected Map<String, Set> sets;

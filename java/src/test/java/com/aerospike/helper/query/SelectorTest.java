@@ -24,9 +24,9 @@ public class SelectorTest extends HelperTest{
 	public SelectorTest(boolean useAuth) {
 		super(useAuth);
 	}
-	
+
 	@Test
-	public void selectOne() throws IOException {
+	public void selectOneWitKey() throws IOException {
 		Statement stmt = new Statement();
 		stmt.setNamespace(QueryEngineTests.NAMESPACE);
 		stmt.setSetName(QueryEngineTests.SET_NAME);
@@ -36,25 +36,23 @@ public class SelectorTest extends HelperTest{
 		while (it.hasNext()){
 			KeyRecord rec = it.next();
 			count++;
-//			System.out.println(rec);
+			//			System.out.println(rec);
 		}
 		it.close();
-//		System.out.println(count);
+		//		System.out.println(count);
 		Assert.assertEquals(1, count);
 	}
 
 	@Test
 	public void selectAll() throws IOException {
 		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, null);
-		int count = 0;
-		while (it.hasNext()){
-			KeyRecord rec = it.next();
-			count++;
-//			System.out.println(rec);
+		try {
+			while (it.hasNext()){
+				KeyRecord rec = it.next();
+			}
+		} finally {
+			it.close();
 		}
-		it.close();
-//		System.out.println(count);
-		Assert.assertEquals(QueryEngineTests.RECORD_COUNT, count);
 	}
 
 	@Test
@@ -62,44 +60,44 @@ public class SelectorTest extends HelperTest{
 		this.client.createIndex(null, QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "age_index", "age", IndexType.NUMERIC);
 		Filter filter = Filter.range("age", 28, 29);
 		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, filter);
-		int count = 0;
-		while (it.hasNext()){
-			KeyRecord rec = it.next();
-			count++;
-//			System.out.println(rec);
+		try{
+			while (it.hasNext()){
+				KeyRecord rec = it.next();
+				int age = rec.record.getInt("age");
+				Assert.assertTrue(age >= 28 && age <= 29);
+			}
+		} finally {
+			it.close();
 		}
-		it.close();
-//		System.out.println(count);
-		Assert.assertEquals(40, count);
 	}
 	@Test
 	public void selectStartsWith() throws IOException {
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.ENDS_WITH, Value.get("e"));
 		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, null, qual1);
-		int count = 0;
-		while (it.hasNext()){
-			KeyRecord rec = it.next();
-			count++;
-//			System.out.println(rec);
+		try{
+			while (it.hasNext()){
+				KeyRecord rec = it.next();
+				Assert.assertTrue(rec.record.getString("color").endsWith("e"));
+
+			}
+		} finally {
+			it.close();
 		}
-		it.close();
-//		System.out.println(count);
-		Assert.assertEquals(40, count);
 	}
 	@Test
 	public void selectEndsWith() throws IOException {
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("blue"));
 		Qualifier qual2 = new Qualifier("name", Qualifier.FilterOperation.START_WITH, Value.get("na"));
 		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, null, qual1, qual2);
-		int count = 0;
-		while (it.hasNext()){
-			KeyRecord rec = it.next();
-			count++;
-//			System.out.println(rec);
+		try{
+			while (it.hasNext()){
+				KeyRecord rec = it.next();
+				Assert.assertEquals("blue", rec.record.getString("color"));
+				Assert.assertTrue(rec.record.getString("name").startsWith("na"));
+			}
+		} finally {
+			it.close();
 		}
-		it.close();
-//		System.out.println(count);
-		Assert.assertEquals(20, count);
 	}
 	@Test
 	public void selectOnIndexWithQualifiers() throws IOException {
@@ -107,15 +105,16 @@ public class SelectorTest extends HelperTest{
 		Filter filter = Filter.range("age", 25, 29);
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("blue"));
 		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, filter, qual1);
-		int count = 0;
-		while (it.hasNext()){
-			KeyRecord rec = it.next();
-			count++;
-//			System.out.println(rec);
+		try{
+			while (it.hasNext()){
+				KeyRecord rec = it.next();
+				Assert.assertEquals("blue", rec.record.getString("color"));
+				int age = rec.record.getInt("age");
+				Assert.assertTrue(age >= 25 && age <= 29);
+			}
+		} finally {
+			it.close();
 		}
-		it.close();
-//		System.out.println(count);
-		Assert.assertEquals(20, count);
 	}
 	@Test
 	public void selectWithQualifiersOnly() throws IOException {
@@ -124,30 +123,30 @@ public class SelectorTest extends HelperTest{
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("green"));
 		Qualifier qual2 = new Qualifier("age", Qualifier.FilterOperation.BETWEEN, Value.get(28), Value.get(29));
 		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, null, qual1, qual2);
-		int count = 0;
-		while (it.hasNext()){
-			KeyRecord rec = it.next();
-			count++;
-			//System.out.println(String.format("(age:%d),(color:%s)",rec.record.getValue("age"), rec.record.getValue("color")));
+		try{
+			while (it.hasNext()){
+				KeyRecord rec = it.next();
+				Assert.assertEquals("green", rec.record.getString("color"));
+				int age = rec.record.getInt("age");
+				Assert.assertTrue(age >= 28 && age <= 29);
+			}
+		} finally {
+			it.close();
 		}
-		it.close();
-		//System.out.println(count);
-		Assert.assertEquals(20, count);
 	}
 	@Test
 	public void selectWithGeneration() throws IOException {
 		queryEngine.refreshCluster();
 		Qualifier qual1 = new GenerationQualifier(Qualifier.FilterOperation.GTEQ, Value.get(1));
 		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, null, qual1);
-		//int count = 0;
-		while (it.hasNext()){
-			KeyRecord rec = it.next();
-			Assert.assertTrue(rec.record.generation >= 1);
-			//count++;
-			//System.out.println(String.format("(age:%d),(color:%s)",rec.record.getValue("age"), rec.record.getValue("color")));
+		try {
+			while (it.hasNext()){
+				KeyRecord rec = it.next();
+				Assert.assertTrue(rec.record.generation >= 1);
+			}
+		} finally {
+			it.close();
 		}
-		it.close();
-		//System.out.println(count);
 	}
 
 }

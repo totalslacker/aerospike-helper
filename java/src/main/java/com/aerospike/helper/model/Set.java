@@ -20,7 +20,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+/**
+ * this class represents a Set defined in the cluster
+ * 
+ * @author peter
+ *
+ */
 public class Set {
 	private Namespace parent;
 	private String name;

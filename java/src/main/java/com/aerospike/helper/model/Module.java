@@ -12,7 +12,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
-
+/**
+ * This class represents a UDF module
+ * registered with the cluster
+ * @author peter
+ *
+ */
 public class Module {
 	
 	private static Logger log = Logger.getLogger(Module.class);
