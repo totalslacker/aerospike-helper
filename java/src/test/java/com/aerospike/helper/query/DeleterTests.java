@@ -15,8 +15,8 @@ import com.aerospike.client.query.Statement;
 
 public class DeleterTests extends HelperTest{
 
-	public DeleterTests(boolean useAuth) {
-		super(useAuth);
+	public DeleterTests() {
+		super();
 	}
 	@Test
 	public void deleteByKey(){

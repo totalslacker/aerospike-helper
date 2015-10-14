@@ -19,20 +19,20 @@ import com.aerospike.client.query.Statement;
 
 public class InserterTests extends HelperTest{
 	
-	public InserterTests(boolean useAuth) {
-		super(useAuth);
+	public InserterTests() {
+		super();
 	}
 	@Before
 	public void setUp() throws Exception {
-		if (this.useAuth){
-			clientPolicy = new ClientPolicy();
-			clientPolicy.failIfNotConnected = true;
-			clientPolicy.user = QueryEngineTests.AUTH_UID;
-			clientPolicy.password = QueryEngineTests.AUTH_PWD;
-			client = new AerospikeClient(clientPolicy, QueryEngineTests.AUTH_HOST, QueryEngineTests.AUTH_PORT);
-		} else {
+//		if (this.useAuth){
+//			clientPolicy = new ClientPolicy();
+//			clientPolicy.failIfNotConnected = true;
+//			clientPolicy.user = QueryEngineTests.AUTH_UID;
+//			clientPolicy.password = QueryEngineTests.AUTH_PWD;
+//			client = new AerospikeClient(clientPolicy, QueryEngineTests.AUTH_HOST, QueryEngineTests.AUTH_PORT);
+//		} else {
 			client = new AerospikeClient(clientPolicy, QueryEngineTests.HOST, QueryEngineTests.PORT);
-		}
+//		}
 		queryEngine = new QueryEngine(client);
 		
 	}

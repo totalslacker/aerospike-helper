@@ -21,8 +21,8 @@ public class SelectorTest extends HelperTest{
 
 
 
-	public SelectorTest(boolean useAuth) {
-		super(useAuth);
+	public SelectorTest() {
+		super();
 	}
 
 	@Test

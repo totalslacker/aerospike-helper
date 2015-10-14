@@ -15,8 +15,8 @@ import com.aerospike.client.query.Statement;
 
 public class UpdatorTest extends HelperTest{
 
-	public UpdatorTest(boolean useAuth) {
-		super(useAuth);
+	public UpdatorTest() {
+		super();
 	}
 
 	@Test

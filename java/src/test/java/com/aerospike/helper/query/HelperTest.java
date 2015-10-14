@@ -12,7 +12,7 @@ import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.Bin;
 import com.aerospike.client.Key;
 import com.aerospike.client.policy.ClientPolicy;
-@RunWith(Parameterized.class)
+//@RunWith(Parameterized.class)
 public class HelperTest {
 	protected AerospikeClient client;
 	protected ClientPolicy clientPolicy;
@@ -20,22 +20,22 @@ public class HelperTest {
 	protected int[] ages = new int[]{25,26,27,28,29};
 	protected String[] colours = new String[]{"blue","red","yellow","green","orange"};
 	protected String[] animals = new String[]{"cat","dog","mouse","snake","lion"};
-	protected boolean useAuth;
+//	protected boolean useAuth;
 
-	public HelperTest(boolean useAuth){
-		this.useAuth = useAuth;
+	public HelperTest(){
+//		this.useAuth = useAuth;
 	}
 	@Before
 	public void setUp() throws Exception {
-		if (this.useAuth){
-			clientPolicy = new ClientPolicy();
-			clientPolicy.failIfNotConnected = true;
-			clientPolicy.user = QueryEngineTests.AUTH_UID;
-			clientPolicy.password = QueryEngineTests.AUTH_PWD;
-			client = new AerospikeClient(clientPolicy, QueryEngineTests.AUTH_HOST, QueryEngineTests.AUTH_PORT);
-		} else {
+//		if (this.useAuth){
+//			clientPolicy = new ClientPolicy();
+//			clientPolicy.failIfNotConnected = true;
+//			clientPolicy.user = QueryEngineTests.AUTH_UID;
+//			clientPolicy.password = QueryEngineTests.AUTH_PWD;
+//			client = new AerospikeClient(clientPolicy, QueryEngineTests.AUTH_HOST, QueryEngineTests.AUTH_PORT);
+//		} else {
 			client = new AerospikeClient(clientPolicy, QueryEngineTests.HOST, QueryEngineTests.PORT);
-		}
+//		}
 		queryEngine = new QueryEngine(client);
 		int i = 0;
 		for (int x = 1; x <= QueryEngineTests.RECORD_COUNT; x++){
@@ -60,13 +60,13 @@ public class HelperTest {
 		queryEngine.close();
 	}
 
-	@Parameterized.Parameters
-	   public static Collection connectionStates() {
-	      return Arrays.asList(new Object[] {
-	         false,
-	         true
-	      });
-	   }
+//	@Parameterized.Parameters
+//	   public static Collection connectionStates() {
+//	      return Arrays.asList(new Object[] {
+//	         false,
+//	         true
+//	      });
+//	   }
 
 
 }
