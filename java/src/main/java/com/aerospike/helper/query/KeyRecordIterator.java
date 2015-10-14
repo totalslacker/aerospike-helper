@@ -46,7 +46,8 @@ public class KeyRecordIterator implements Iterator<KeyRecord>, Closeable {
 	private Iterator<Object> resultSetIterator;
 	private String namespace;
 	private KeyRecord singleRecord;
-	
+	private Integer closeLock = new Integer(0);
+
 	public KeyRecordIterator(String namespace) {
 		super();
 		this.namespace = namespace;
@@ -68,17 +69,19 @@ public class KeyRecordIterator implements Iterator<KeyRecord>, Closeable {
 		this(namespace);
 		this.resultSet = resultSet;
 		this.resultSetIterator = resultSet.iterator();
-		
+
 	}
 
 	@Override
 	public void close() throws IOException {
-		if (recordSet != null)
-			recordSet.close();
-		if (resultSet != null)
-			resultSet.close();
-		if (singleRecord != null)
-			singleRecord = null;
+		synchronized (closeLock) {
+			if (recordSet != null)
+				recordSet.close();
+			if (resultSet != null)
+				resultSet.close();
+			if (singleRecord != null)
+				singleRecord = null;
+		}
 	}
 
 	@Override
@@ -125,9 +128,9 @@ public class KeyRecordIterator implements Iterator<KeyRecord>, Closeable {
 
 	@Override
 	public void remove() {
-		
+
 	}
-	
+
 	@Override
 	public String toString() {
 		return this.namespace;

@@ -8,10 +8,11 @@ import org.junit.runners.Suite.SuiteClasses;
 @SuiteClasses({ SelectorTest.class, InserterTests.class, UpdatorTest.class, DeleterTests.class })
 public class QueryEngineTests {
 	public static final int PORT = 3000;
-	public static final String HOST = "172.28.128.6";
+	public static final String HOST = "52.23.205.208";
 	public static final String NAMESPACE = "test";
 	public static final String SET_NAME = "selector";
 	public static final int RECORD_COUNT = 100;
+	public static final int TIME_OUT = 500;
 
 	public static final String AUTH_HOST = "C-25c35d91c6.aerospike.io";
 	public static final int AUTH_PORT = 3200;

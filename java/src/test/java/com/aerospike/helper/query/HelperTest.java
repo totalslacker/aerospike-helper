@@ -9,6 +9,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import com.aerospike.client.AerospikeClient;
+import com.aerospike.client.AerospikeException.QueryTerminated;
 import com.aerospike.client.Bin;
 import com.aerospike.client.Key;
 import com.aerospike.client.policy.ClientPolicy;
@@ -27,15 +28,9 @@ public class HelperTest {
 	}
 	@Before
 	public void setUp() throws Exception {
-//		if (this.useAuth){
-//			clientPolicy = new ClientPolicy();
-//			clientPolicy.failIfNotConnected = true;
-//			clientPolicy.user = QueryEngineTests.AUTH_UID;
-//			clientPolicy.password = QueryEngineTests.AUTH_PWD;
-//			client = new AerospikeClient(clientPolicy, QueryEngineTests.AUTH_HOST, QueryEngineTests.AUTH_PORT);
-//		} else {
+			clientPolicy = new ClientPolicy();
+			clientPolicy.timeout = QueryEngineTests.TIME_OUT;
 			client = new AerospikeClient(clientPolicy, QueryEngineTests.HOST, QueryEngineTests.PORT);
-//		}
 		queryEngine = new QueryEngine(client);
 		int i = 0;
 		for (int x = 1; x <= QueryEngineTests.RECORD_COUNT; x++){

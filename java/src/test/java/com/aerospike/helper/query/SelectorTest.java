@@ -2,20 +2,15 @@ package com.aerospike.helper.query;
 
 import java.io.IOException;
 
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
-import com.aerospike.client.AerospikeClient;
-import com.aerospike.client.Bin;
-import com.aerospike.client.Key;
 import com.aerospike.client.Value;
-import com.aerospike.client.policy.ClientPolicy;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.IndexType;
 import com.aerospike.client.query.KeyRecord;
 import com.aerospike.client.query.Statement;
+import com.aerospike.client.task.IndexTask;
 
 public class SelectorTest extends HelperTest{
 
@@ -57,7 +52,8 @@ public class SelectorTest extends HelperTest{
 
 	@Test
 	public void selectOnIndex() throws IOException {
-		this.client.createIndex(null, QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "age_index", "age", IndexType.NUMERIC);
+		IndexTask task = this.client.createIndex(null, QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "age_index", "age", IndexType.NUMERIC);
+		task.waitTillComplete(50);
 		Filter filter = Filter.range("age", 28, 29);
 		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, filter);
 		try{
@@ -101,7 +97,8 @@ public class SelectorTest extends HelperTest{
 	}
 	@Test
 	public void selectOnIndexWithQualifiers() throws IOException {
-		this.client.createIndex(null, QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "age_index", "age", IndexType.NUMERIC);
+		IndexTask task = this.client.createIndex(null, QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "age_index_selector", "age", IndexType.NUMERIC);
+		task.waitTillComplete(50);
 		Filter filter = Filter.range("age", 25, 29);
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("blue"));
 		KeyRecordIterator it = queryEngine.select(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, filter, qual1);
@@ -118,7 +115,8 @@ public class SelectorTest extends HelperTest{
 	}
 	@Test
 	public void selectWithQualifiersOnly() throws IOException {
-		this.client.createIndex(null, QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "age_index", "age", IndexType.NUMERIC);
+		IndexTask task = this.client.createIndex(null, QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "age_index", "age", IndexType.NUMERIC);
+		task.waitTillComplete(50);
 		queryEngine.refreshCluster();
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("green"));
 		Qualifier qual2 = new Qualifier("age", Qualifier.FilterOperation.BETWEEN, Value.get(28), Value.get(29));
