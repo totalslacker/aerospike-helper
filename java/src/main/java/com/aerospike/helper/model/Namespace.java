@@ -89,6 +89,8 @@ public class Namespace{
 	}
 
 	public Collection<Set> getSets() {
+		if (sets == null)
+			sets = new HashMap<String, Set>();
 		return sets.values();
 	}
 
