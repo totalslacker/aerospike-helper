@@ -42,6 +42,7 @@ import com.aerospike.client.query.KeyRecord;
 import com.aerospike.client.query.RecordSet;
 import com.aerospike.client.query.ResultSet;
 import com.aerospike.client.query.Statement;
+import com.aerospike.client.task.ExecuteTask;
 import com.aerospike.helper.model.Index;
 import com.aerospike.helper.model.Module;
 import com.aerospike.helper.model.Namespace;
@@ -99,7 +100,14 @@ public class QueryEngine implements Closeable{
 	 * @param client
 	 */
 	public QueryEngine(AerospikeClient client) {
+		this();
+		setClient(client);
+	}
+	public QueryEngine() {
 		super();
+	}
+	
+	public void setClient(AerospikeClient client){
 		this.client = client;
 		this.updatePolicy = new WritePolicy(this.client.writePolicyDefault);
 		this.updatePolicy.recordExistsAction = RecordExistsAction.UPDATE_ONLY;
@@ -339,6 +347,15 @@ public class QueryEngine implements Closeable{
 	 * ***************************************************** 
 	 */
 	public Map<String, Long> delete(Statement stmt, Qualifier... qualifiers){
+		if (qualifiers == null || qualifiers.length == 0){
+			/*
+			 * There are no qualifiers, so delete every record in the set
+			 * using Scan UDF delete
+			 */
+			ExecuteTask task = client.execute(null, stmt, QUERY_MODULE, "delete_record");
+			task.waitTillComplete();
+			return null;
+		}
 		if (qualifiers.length == 1 && qualifiers[0] instanceof KeyQualifier){
 			KeyQualifier keyQualifier = (KeyQualifier) qualifiers[0];
 			Key key = keyQualifier.makeKey(stmt.getNamespace(), stmt.getSetName());

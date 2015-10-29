@@ -85,6 +85,13 @@ local function parseFieldStatements(fieldValueStatements)
   end
   return fieldFuncs
 end
+
+
+function delete_record(rec)
+  if aerospike:exists(rec) then
+    aerospike:remove(rec)
+  end
+end
 ------------------------------------------------------------------------------------------
 --  Returns Maps For Specified Filters
 ------------------------------------------------------------------------------------------
