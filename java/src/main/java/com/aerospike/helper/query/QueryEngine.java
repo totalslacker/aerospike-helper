@@ -105,6 +105,7 @@ public class QueryEngine implements Closeable{
 	}
 	public QueryEngine() {
 		super();
+		Value.UseDoubleType = true;
 	}
 	
 	public void setClient(AerospikeClient client){
