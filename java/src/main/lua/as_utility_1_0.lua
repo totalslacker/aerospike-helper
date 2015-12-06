@@ -47,6 +47,43 @@ function dumpLocal()
   until not name
 end
 
+function containsValue(collection, value)
+	for _,v in pairs(collection) do
+	  if v == value then
+	    return true
+	  end
+	end
+	return false
+end 
+
+function containsKey(collection, key)
+	for k,_ in pairs(collection) do
+	  if k == value then
+	    return true
+	  end
+	end
+	return false
+end 
+
+function rangeValue(collection, low, high)
+	for _,v in pairs(collection) do
+	  if v >= low and v <= high  then
+	    return true
+	  end
+	end
+	return false
+end 
+
+function rangeKey(collection, low, high)
+	for k,_ in pairs(collection) do
+	  if k >= low and k <= high  then
+	    return true
+	  end
+	end
+	return false
+end 
+
+
 local function filter_record(rec, filterFuncStr, filterFunc)
   --dumpRecord(rec)
   --info(filterFuncStr)

@@ -38,6 +38,7 @@ import java.util.Set;
 import com.aerospike.client.Value;
 import com.aerospike.client.command.ParticleType;
 import com.aerospike.client.query.Filter;
+import com.aerospike.client.query.IndexCollectionType;
 /**
  * Generic Bin qualifier. It acts as a filter to exclude records that do not met this criteria.
  * The operations supported are 
@@ -59,9 +60,12 @@ public class Qualifier implements Map<String, Object>{
 	private static final String VALUE2 = "value2";
 	private static final String VALUE1 = "value1";
 	private static final String OPERATION = "operation";
+	private static final String COLLECTION_OPERATION = "collection-operation";
 	protected Map<String, Object> internalMap;
 	public enum FilterOperation {
-		EQ, GT, GTEQ, LT, LTEQ, NOTEQ, BETWEEN, START_WITH, ENDS_WITH
+		EQ, GT, GTEQ, LT, LTEQ, NOTEQ, BETWEEN, START_WITH, ENDS_WITH, 
+		LIST_CONTAINS, MAP_KEYS_CONTAINS, MAP_VALUES_CONTAINS, 
+		LIST_BETWEEN, MAP_KEYS_BETWEEN, MAP_VALUES_BETWEEN
 	}
 
 	public Qualifier() {
@@ -78,6 +82,8 @@ public class Qualifier implements Map<String, Object>{
 		this(field, operation, value1);
 		internalMap.put(VALUE2, value2);
 	}
+
+
 
 	public FilterOperation getOperation(){
 		return (FilterOperation) internalMap.get(OPERATION);
@@ -100,9 +106,36 @@ public class Qualifier implements Map<String, Object>{
 			return Filter.equal(getField(), getValue1());
 		case BETWEEN:
 			return Filter.range(getField(), getValue1(), getValue2());
+		case LIST_CONTAINS:
+			return collectionContains(IndexCollectionType.LIST);
+		case MAP_KEYS_CONTAINS:
+			return collectionContains(IndexCollectionType.MAPKEYS);
+		case MAP_VALUES_CONTAINS:
+			return collectionContains(IndexCollectionType.MAPVALUES);
+		case LIST_BETWEEN:
+			return collectionRange(IndexCollectionType.LIST);
+		case MAP_KEYS_BETWEEN:
+			return collectionRange(IndexCollectionType.MAPKEYS);
+		case MAP_VALUES_BETWEEN:
+			return collectionRange(IndexCollectionType.MAPKEYS);
 		default:
 			return null;
 		}
+	}
+	
+	private Filter collectionContains(IndexCollectionType collectionType){
+		Value val = getValue1();
+		int valType = val.getType();
+		switch (valType){
+		case ParticleType.INTEGER:
+			return Filter.contains(getField(), collectionType, val.toLong());
+		case ParticleType.STRING:
+			return Filter.contains(getField(), collectionType, val.toString());
+		}
+		return null;
+	}
+	private Filter collectionRange(IndexCollectionType collectionType){
+		return Filter.range(getField(), collectionType, getValue1().toLong(), getValue2().toLong());
 	}
 
 	public String luaFilterString(){
@@ -111,6 +144,12 @@ public class Qualifier implements Map<String, Object>{
 		switch (op) {
 		case EQ:
 			return String.format("%s == %s", luaFieldString(getField()),  value1);
+		case LIST_CONTAINS:
+			return String.format("containsValue(%s, %s)", luaFieldString(getField()),  value1);
+		case MAP_KEYS_CONTAINS:
+			return String.format("containsKey(%s, %s)", luaFieldString(getField()),  value1);
+		case MAP_VALUES_CONTAINS:
+			return String.format("containsValue(%s, %s)", luaFieldString(getField()),  value1);
 		case NOTEQ:
 			return String.format("%s ~= %s", luaFieldString(getField()), value1);
 		case GT:
@@ -125,6 +164,15 @@ public class Qualifier implements Map<String, Object>{
 			String value2 = luaValueString(getValue2());
 			String fieldString = luaFieldString(getField()); 
 			return String.format("%s >= %s and %s <= %s  ", fieldString, value1, luaFieldString(getField()), value2);
+		case LIST_BETWEEN:
+			value2 = luaValueString(getValue2());
+			return String.format("rangeValue(%s, %s, %s)", luaFieldString(getField()),  value1, value2);
+		case MAP_KEYS_BETWEEN:
+			value2 = luaValueString(getValue2());
+			return String.format("rangeKey(%s, %s, %s)", luaFieldString(getField()),  value1, value2);
+		case MAP_VALUES_BETWEEN:
+			value2 = luaValueString(getValue2());
+			return String.format("rangeValue(%s, %s, %s)", luaFieldString(getField()),  value1, value2);
 		case START_WITH:
 			return String.format("string.sub(%s,1,string.len(%s))==%s", luaFieldString(getField()), value1, value1);			
 		case ENDS_WITH:
@@ -136,7 +184,7 @@ public class Qualifier implements Map<String, Object>{
 		}
 		return "";
 	}
-	
+
 	protected String luaFieldString(String field){
 		return String.format("rec['%s']", field);
 	}
@@ -145,15 +193,15 @@ public class Qualifier implements Map<String, Object>{
 		String res = null;
 		int type = value.getType();
 		switch (type) {
-//		case ParticleType.LIST:
-//			res = value.toString();
-//			break;
-//		case ParticleType.MAP:
-//			res = value.toString();
-//			break;
-//		case ParticleType.DOUBLE:
-//			res = value.toString();
-//			break;
+		//		case ParticleType.LIST:
+		//			res = value.toString();
+		//			break;
+		//		case ParticleType.MAP:
+		//			res = value.toString();
+		//			break;
+		//		case ParticleType.DOUBLE:
+		//			res = value.toString();
+		//			break;
 		case ParticleType.STRING:
 			res = String.format("'%s'", value.toString());
 			break;

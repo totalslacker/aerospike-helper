@@ -13,21 +13,21 @@ import com.aerospike.client.Record;
 import com.aerospike.client.Value;
 import com.aerospike.client.query.Statement;
 
-public class UpdatorTest extends HelperTest{
+public class UpdatorTests extends HelperTests{
 
-	public UpdatorTest() {
+	public UpdatorTests() {
 		super();
 	}
 
 	@Test
 	public void updateByKey(){
-		for (int x = 1; x <= QueryEngineTests.RECORD_COUNT; x++){
+		for (int x = 1; x <= TestQueryEngine.RECORD_COUNT; x++){
 			String keyString = "selector-test:"+x;
-			Key key = new Key(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, keyString);
+			Key key = new Key(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, keyString);
 			KeyQualifier kq = new KeyQualifier(Value.get(keyString));
 			Statement stmt = new Statement();
-			stmt.setNamespace(QueryEngineTests.NAMESPACE);
-			stmt.setSetName(QueryEngineTests.SET_NAME);
+			stmt.setNamespace(TestQueryEngine.NAMESPACE);
+			stmt.setSetName(TestQueryEngine.SET_NAME);
 			
 			ArrayList<Bin> bins = new ArrayList<Bin>() {{
 			    add(new Bin("ending", "ends with e"));
@@ -44,13 +44,13 @@ public class UpdatorTest extends HelperTest{
 	@Test
 	public void updateByDigest(){
 			
-			for (int x = 1; x <= QueryEngineTests.RECORD_COUNT; x++){
+			for (int x = 1; x <= TestQueryEngine.RECORD_COUNT; x++){
 				String keyString = "selector-test:"+x;
-				Key key = new Key(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, keyString);
+				Key key = new Key(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, keyString);
 				KeyQualifier kq = new KeyQualifier(key.digest);
 				Statement stmt = new Statement();
-				stmt.setNamespace(QueryEngineTests.NAMESPACE);
-				stmt.setSetName(QueryEngineTests.SET_NAME);
+				stmt.setNamespace(TestQueryEngine.NAMESPACE);
+				stmt.setSetName(TestQueryEngine.SET_NAME);
 				
 				ArrayList<Bin> bins = new ArrayList<Bin>() {{
 				    add(new Bin("ending", "ends with e"));
@@ -71,12 +71,12 @@ public class UpdatorTest extends HelperTest{
 		    add(new Bin("ending", "ends with e"));
 		}};
 		Statement stmt = new Statement();
-		stmt.setNamespace(QueryEngineTests.NAMESPACE);
-		stmt.setSetName(QueryEngineTests.SET_NAME);
+		stmt.setNamespace(TestQueryEngine.NAMESPACE);
+		stmt.setSetName(TestQueryEngine.SET_NAME);
 		Map<String, Long> counts = queryEngine.update(stmt, bins, qual1);
 		//System.out.println(counts);
-		Assert.assertEquals((Long)40L, (Long)counts.get("read"));
-		Assert.assertEquals((Long)40L, (Long)counts.get("write"));
+		Assert.assertEquals((Long)400L, (Long)counts.get("read"));
+		Assert.assertEquals((Long)400L, (Long)counts.get("write"));
 	}
 	
 	@Test
@@ -87,12 +87,12 @@ public class UpdatorTest extends HelperTest{
 		    add(new Bin("starting", "ends with e"));
 		}};
 		Statement stmt = new Statement();
-		stmt.setNamespace(QueryEngineTests.NAMESPACE);
-		stmt.setSetName(QueryEngineTests.SET_NAME);
+		stmt.setNamespace(TestQueryEngine.NAMESPACE);
+		stmt.setSetName(TestQueryEngine.SET_NAME);
 		Map<String, Long> counts = queryEngine.update(stmt, bins, qual1, qual2);
 		//System.out.println(counts);
-		Assert.assertEquals((Long)20L, (Long)counts.get("read"));
-		Assert.assertEquals((Long)20L, (Long)counts.get("write"));
+		Assert.assertEquals((Long)200L, (Long)counts.get("read"));
+		Assert.assertEquals((Long)200L, (Long)counts.get("write"));
 	}
 
 }

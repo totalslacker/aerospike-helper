@@ -43,6 +43,7 @@ import com.aerospike.client.query.RecordSet;
 import com.aerospike.client.query.ResultSet;
 import com.aerospike.client.query.Statement;
 import com.aerospike.client.task.ExecuteTask;
+import com.aerospike.client.task.RegisterTask;
 import com.aerospike.helper.model.Index;
 import com.aerospike.helper.model.Module;
 import com.aerospike.helper.model.Namespace;
@@ -58,9 +59,9 @@ import com.aerospike.helper.query.Qualifier.FilterOperation;
  */
 public class QueryEngine implements Closeable{
 
-	protected static final String QUERY_MODULE = "as_utility";
+	protected static final String QUERY_MODULE = "as_utility_1_0"; //DO NOT use decimal places in the module name
 
-	protected static final String AS_UTILITY_PATH = "as_utility.lua";
+	protected static final String AS_UTILITY_PATH = QUERY_MODULE+".lua";
 
 	protected static Logger log = Logger.getLogger(QueryEngine.class);
 
@@ -84,8 +85,7 @@ public class QueryEngine implements Closeable{
 		@Override
 		public String toString() {
 			switch(this) {
-			case KEY: return "__Key";
-			case TTL: return "__TTL";
+			case KEY: return "__key";
 			case EXPIRATION: return "__Expiration";
 			case GENERATION: return "__generation";
 			default: throw new IllegalArgumentException();
@@ -419,10 +419,10 @@ public class QueryEngine implements Closeable{
 	private void registerUDF() {
 		if (getModule(QUERY_MODULE+".lua") == null){ // register the as_utility udf module
 
-			this.client.register(null, this.getClass().getClassLoader(), 
+			RegisterTask task = this.client.register(null, this.getClass().getClassLoader(), 
 					AS_UTILITY_PATH, 
 					QUERY_MODULE+".lua", Language.LUA);
-
+			task.isDone();
 		}
 	}
 

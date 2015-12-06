@@ -17,7 +17,7 @@ import com.aerospike.client.Value;
 import com.aerospike.client.policy.ClientPolicy;
 import com.aerospike.client.query.Statement;
 
-public class InserterTests extends HelperTest{
+public class InserterTests extends HelperTests{
 	
 	public InserterTests() {
 		super();
@@ -31,7 +31,7 @@ public class InserterTests extends HelperTest{
 //			clientPolicy.password = QueryEngineTests.AUTH_PWD;
 //			client = new AerospikeClient(clientPolicy, QueryEngineTests.AUTH_HOST, QueryEngineTests.AUTH_PORT);
 //		} else {
-			client = new AerospikeClient(clientPolicy, QueryEngineTests.HOST, QueryEngineTests.PORT);
+			client = new AerospikeClient(clientPolicy, TestQueryEngine.HOST, TestQueryEngine.PORT);
 //		}
 		queryEngine = new QueryEngine(client);
 		
@@ -39,8 +39,8 @@ public class InserterTests extends HelperTest{
 	
 	@After
 	public void tearDown() throws Exception {
-		for (int x = 1; x <= QueryEngineTests.RECORD_COUNT; x++){
-			Key key = new Key(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "selector-test:"+ x);
+		for (int x = 1; x <= TestQueryEngine.RECORD_COUNT; x++){
+			Key key = new Key(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "selector-test:"+ x);
 			this.client.delete(null, key);
 		}
 		queryEngine.close();
@@ -49,7 +49,7 @@ public class InserterTests extends HelperTest{
 	@Test
 	public void insertByKey(){
 		int i = 0;
-		for (int x = 1; x <= QueryEngineTests.RECORD_COUNT; x++){
+		for (int x = 1; x <= TestQueryEngine.RECORD_COUNT; x++){
 			String keyString = "selector-test:"+x;
 			
 			Bin name = new Bin("name", "name:" + x);
@@ -58,11 +58,13 @@ public class InserterTests extends HelperTest{
 			Bin animal = new Bin("animal", animals[i]);
 			List<Bin> bins = Arrays.asList(name, age, colour, animal);
 			
-			Key key = new Key(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, keyString);
+			Key key = new Key(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, keyString);
+			this.client.delete(null, key);
+			
 			KeyQualifier kq = new KeyQualifier(Value.get(keyString));
 			Statement stmt = new Statement();
-			stmt.setNamespace(QueryEngineTests.NAMESPACE);
-			stmt.setSetName(QueryEngineTests.SET_NAME);
+			stmt.setNamespace(TestQueryEngine.NAMESPACE);
+			stmt.setSetName(TestQueryEngine.SET_NAME);
 			
 			queryEngine.insert(stmt, kq, bins);
 			
@@ -77,7 +79,7 @@ public class InserterTests extends HelperTest{
 	public void insertByDigest(){
 		
 		int i = 0;
-		for (int x = 1; x <= QueryEngineTests.RECORD_COUNT; x++){
+		for (int x = 1; x <= TestQueryEngine.RECORD_COUNT; x++){
 			String keyString = "selector-test:"+x;
 			
 			Bin name = new Bin("name", "name:" + x);
@@ -86,11 +88,13 @@ public class InserterTests extends HelperTest{
 			Bin animal = new Bin("animal", animals[i]);
 			List<Bin> bins = Arrays.asList(name, age, colour, animal);
 			
-			Key key = new Key(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, keyString);
+			Key key = new Key(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, keyString);
+			this.client.delete(null, key);
+			
 			KeyQualifier kq = new KeyQualifier(key.digest);
 			Statement stmt = new Statement();
-			stmt.setNamespace(QueryEngineTests.NAMESPACE);
-			stmt.setSetName(QueryEngineTests.SET_NAME);
+			stmt.setNamespace(TestQueryEngine.NAMESPACE);
+			stmt.setSetName(TestQueryEngine.SET_NAME);
 			
 			queryEngine.insert(stmt, kq, bins);
 			

@@ -1,20 +1,15 @@
 package com.aerospike.helper.query;
 
-import java.util.Arrays;
-import java.util.Collection;
-
 import org.junit.After;
 import org.junit.Before;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import com.aerospike.client.AerospikeClient;
-import com.aerospike.client.AerospikeException.QueryTerminated;
 import com.aerospike.client.Bin;
 import com.aerospike.client.Key;
 import com.aerospike.client.policy.ClientPolicy;
+import com.aerospike.client.policy.RecordExistsAction;
 //@RunWith(Parameterized.class)
-public class HelperTest {
+public class HelperTests {
 	protected AerospikeClient client;
 	protected ClientPolicy clientPolicy;
 	protected QueryEngine queryEngine;
@@ -23,18 +18,23 @@ public class HelperTest {
 	protected String[] animals = new String[]{"cat","dog","mouse","snake","lion"};
 //	protected boolean useAuth;
 
-	public HelperTest(){
-//		this.useAuth = useAuth;
+	public HelperTests(){
+		clientPolicy = new ClientPolicy();
+		clientPolicy.timeout = TestQueryEngine.TIME_OUT;
+		client = new AerospikeClient(clientPolicy, TestQueryEngine.HOST, TestQueryEngine.PORT);
+		client.writePolicyDefault.expiration = 1800;
+		client.writePolicyDefault.recordExistsAction = RecordExistsAction.REPLACE;
+
 	}
 	@Before
 	public void setUp() throws Exception {
-			clientPolicy = new ClientPolicy();
-			clientPolicy.timeout = QueryEngineTests.TIME_OUT;
-			client = new AerospikeClient(clientPolicy, QueryEngineTests.HOST, QueryEngineTests.PORT);
 		queryEngine = new QueryEngine(client);
 		int i = 0;
-		for (int x = 1; x <= QueryEngineTests.RECORD_COUNT; x++){
-			Key key = new Key(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "selector-test:"+ x);
+		Key key = new Key(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "selector-test:"+ 10);
+		if (this.client.exists(null, key))
+			return;
+		for (int x = 1; x <= TestQueryEngine.RECORD_COUNT; x++){
+			key = new Key(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "selector-test:"+ x);
 			Bin name = new Bin("name", "name:" + x);
 			Bin age = new Bin("age", ages[i]);
 			Bin colour = new Bin("color", colours[i]);
@@ -48,10 +48,6 @@ public class HelperTest {
 
 	@After
 	public void tearDown() throws Exception {
-		for (int x = 1; x <= QueryEngineTests.RECORD_COUNT; x++){
-			Key key = new Key(QueryEngineTests.NAMESPACE, QueryEngineTests.SET_NAME, "selector-test:"+ x);
-			this.client.delete(null, key);
-		}
 		queryEngine.close();
 	}
 
