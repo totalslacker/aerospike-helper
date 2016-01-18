@@ -512,7 +512,8 @@ public class QueryEngine implements Closeable{
 						String[] indexList = indexString.split(";");
 						for (String oneIndexString : indexList){
 							Index index = new Index(oneIndexString);	
-							this.indexCache.put(index.getBin(), index);
+							String indexBin = index.getBin();
+							this.indexCache.put(indexBin, index);
 						}
 					}
 					break;

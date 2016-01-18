@@ -56,20 +56,21 @@ public class Index {
 
 	public void setIndexInfo(String info){
 		//ns=phobos_sindex:set=longevity:indexname=str_100_idx:num_bins=1:bins=str_100_bin:type=TEXT:sync_state=synced:state=RW;
+		//ns=test:set=Customers:indexname=mail_index_userss:bin=email:type=STRING:indextype=LIST:path=email:sync_state=synced:state=RW
 		if (!info.isEmpty()){
 			String[] parts = info.split(":");
-			if (values == null){
-				values = new HashMap<String, String>();
-			}
 			for (String part : parts){
-				kvPut(part, this.values);
+				kvPut(part);
 			}
 		}
 	}
-	private void kvPut(String kv, Map<String, String> map){
+	private void kvPut(String kv){
+		if (values == null){
+			values = new HashMap<String, String>();
+		}
 		String[] kvParts = kv.split("=");
-		map.put(kvParts[0], kvParts[1]);
-	};
+		this.values.put(kvParts[0], kvParts[1]);
+	}
 
 	@Override
 	public String toString() {
