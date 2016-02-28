@@ -53,7 +53,10 @@ public class Index {
 		}
 		return result;
 	}
-
+	/**
+	 * Populates the Index object from an "info" message from Aerospike
+	 * @param info
+	 */
 	public void setIndexInfo(String info){
 		//ns=phobos_sindex:set=longevity:indexname=str_100_idx:num_bins=1:bins=str_100_bin:type=TEXT:sync_state=synced:state=RW;
 		//ns=test:set=Customers:indexname=mail_index_userss:bin=email:type=STRING:indextype=LIST:path=email:sync_state=synced:state=RW

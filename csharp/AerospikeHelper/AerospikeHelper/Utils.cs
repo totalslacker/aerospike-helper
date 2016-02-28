@@ -4,7 +4,6 @@ using AerospikeHelper.Model;
 using Aerospike.Client;
 using System.Text;
 
-
 namespace AerospikeHelper
 {
 	public class Utils
@@ -75,6 +74,22 @@ namespace AerospikeHelper
 				results.Append(Info.Request(node.Host.name, node.Host.port, cmd)).Append("\n");
 			}
 			return results.ToString();
+		}
+
+	}
+	public class StringValueAttribute : System.Attribute
+	{
+
+		private string _value;
+
+		public StringValueAttribute(string value)
+		{
+			_value = value;
+		}
+
+		public string Value
+		{
+			get { return _value; }
 		}
 
 	}

@@ -31,14 +31,26 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="Neo.Lua">
-      <HintPath>..\packages\NeoLua.0.9.14\lib\net4\Neo.Lua.dll</HintPath>
-    </Reference>
     <Reference Include="AerospikeClient">
       <HintPath>..\packages\Aerospike.Client.3.1.7\lib\net40\AerospikeClient.dll</HintPath>
     </Reference>
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
+    <Reference Include="Es.Logging">
+      <HintPath>..\packages\Es.Logging.0.0.4\lib\net45\Es.Logging.dll</HintPath>
+    </Reference>
+    <Reference Include="log4net">
+      <HintPath>..\packages\log4net.2.0.5\lib\net45-full\log4net.dll</HintPath>
+    </Reference>
+    <Reference Include="Es.Logging.Log4">
+      <HintPath>..\packages\Es.Logging.Log4.0.0.4\lib\net45\Es.Logging.Log4.dll</HintPath>
+    </Reference>
+    <Reference Include="Neo.Lua">
+      <HintPath>..\packages\NeoLua.1.1.5\lib\net45\Neo.Lua.dll</HintPath>
+    </Reference>
+    <Reference Include="Neo.Lua.Desktop">
+      <HintPath>..\packages\NeoLua.1.1.5\lib\net45\Neo.Lua.Desktop.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -51,6 +63,10 @@
     <Compile Include="Model\Set.cs" />
     <Compile Include="Query\Qualifier.cs" />
     <Compile Include="Collections\LargeList.cs" />
+    <Compile Include="Query\ExpiryQualifer.cs" />
+    <Compile Include="Query\QueryEngine.cs" />
+    <Compile Include="Query\KeyQualifier.cs" />
+    <Compile Include="Query\KeyRecordIterator.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections;
 using Aerospike.Client;
+
 
 namespace AerospikeHelper.Query
 {
-	public class Qualifier : IDictionary<String, Object> 
+	public class Qualifier //: IDictionary<String, Object> 
 	{
 		private const String FIELD = "field";
 		private const String VALUE2 = "value2";
@@ -107,7 +107,7 @@ namespace AerospikeHelper.Query
 			return Filter.Range(Field, collectionType, Value1.ToLong(), Value2.ToLong());
 		}
 
-		public String luaFilterString(){
+		public  String luaFilterString(){
 			String value1 = luaValueString(Value1);
 			FilterOperation op = getOperation();
 			switch (op) {
@@ -154,7 +154,7 @@ namespace AerospikeHelper.Query
 			return "";
 		}
 
-		protected String luaFieldString(String field){
+		protected virtual String luaFieldString(String field){
 			return String.Format("rec['%s']", field);
 		}
 
@@ -182,12 +182,22 @@ namespace AerospikeHelper.Query
 		}
 		#region IDictionary Members
 		public bool IsReadOnly { get { return false; } }
+
+		public bool Contains(KeyValuePair<string, object> keyValue)
+		{
+			return internalMap.ContainsKey(keyValue.Key) && (internalMap[keyValue.Key] == keyValue.Value);
+		}
+
 		public bool ContainsKey(string key)
 		{
 			return internalMap.ContainsKey(key);
 		}
 		public bool IsFixedSize { get { return false; } }
 
+		public bool Remove(KeyValuePair<string, object> keyValue)
+		{
+			return internalMap.Remove (keyValue.Key);
+		}
 		public bool Remove(string key)
 		{
 			return internalMap.Remove (key);
@@ -197,6 +207,11 @@ namespace AerospikeHelper.Query
 			return internalMap.Remove ((String)key);
 		}
 		public void Clear() { internalMap.Clear(); }
+
+
+		public void Add(KeyValuePair<string, object> keyValue){
+			internalMap.Add (keyValue.Key, keyValue.Value);
+		}
 
 		public void Add(string key, object value) 
 		{
@@ -250,9 +265,17 @@ namespace AerospikeHelper.Query
 		{
 			return internalMap.TryGetValue((string)key, out index);
 		}
-		public IEnumerator GetEnumerator()
+
+
+//`System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string,object>>.GetEnumerator()
+//		' and the best implementing candidate `AerospikeHelper.Query.Qualifier.GetEnumerator()' 
+//		return type `System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string,object>>' 
+//			does not match interface member return type 
+//				`System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string,object>>' 
+//				(CS0738) (AerospikeHelper)
+		public IEnumerable<KeyValuePair<string,object>> GetEnumerator()
 		{
-			return internalMap.GetEnumerator();
+			return null;//(IEnumerable<KeyValuePair<string, object>>)internalMap.GetEnumerator();
 		}
 
 		public bool  TryGetValue(string key, out object value){
@@ -263,6 +286,11 @@ namespace AerospikeHelper.Query
 			get {
 				return internalMap.Count;
 			}
+		}
+
+		public void CopyTo(
+			KeyValuePair<string, object>[] array,
+			int index) {
 		}
 
 		#endregion

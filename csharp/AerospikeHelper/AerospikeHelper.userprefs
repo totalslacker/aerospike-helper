@@ -1,15 +1,15 @@
 ﻿<Properties StartupItem="AerospikeHelper/AerospikeHelper.csproj">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="AerospikeHelper/Query/Qualifier.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="AerospikeHelper/Query/QueryEngine.cs">
     <Files>
-      <File FileName="AerospikeHelper/Collections/LargeList.cs" Line="6" Column="38" />
-      <File FileName="AerospikeHelper/Model/Function.cs" Line="9" Column="19" />
-      <File FileName="AerospikeHelper/Utils.cs" Line="3" Column="16" />
-      <File FileName="AerospikeHelper/Model/Index.cs" Line="5" Column="20" />
-      <File FileName="AerospikeHelper/Model/Module.cs" Line="6" Column="20" />
-      <File FileName="AerospikeHelper/Model/NameValuePair.cs" Line="3" Column="20" />
-      <File FileName="AerospikeHelper/Model/Set.cs" Line="4" Column="20" />
-      <File FileName="AerospikeHelper/Query/Qualifier.cs" Line="267" Column="3" />
+      <File FileName="AerospikeHelper/Query/ExpiryQualifer.cs" Line="8" Column="95" />
+      <File FileName="AerospikeHelper/Query/Qualifier.cs" Line="10" Column="28" />
+      <File FileName="AerospikeHelper/Model/Module.cs" Line="1" Column="1" />
+      <File FileName="AerospikeHelper/Model/Index.cs" Line="1" Column="1" />
+      <File FileName="AerospikeHelper/Model/Function.cs" Line="1" Column="1" />
+      <File FileName="AerospikeHelper/Query/QueryEngine.cs" Line="123" Column="12" />
+      <File FileName="AerospikeHelper/Query/KeyRecordIterator.cs" Line="60" Column="31" />
+      <File FileName="../../../aerospike-client-csharp/AerospikeDemo/QueryFilter.cs" Line="1" Column="1" NotebookId="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
