@@ -112,7 +112,7 @@ namespace Aerospike.Helper.Model
 			set
 			{
 				this.source = Source;
-				Match matcher = fn_name.Match(source);
+				//Match matcher = fn_name.Match(source);
 				functions = new List<Function>();
 
 				foreach (Match functionMatch in fn_name.Matches(source))

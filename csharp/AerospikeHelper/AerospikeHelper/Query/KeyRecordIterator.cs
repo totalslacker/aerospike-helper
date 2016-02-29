@@ -22,12 +22,18 @@ namespace Aerospike.Helper.Query
 		private ResultSet resultSet;
 		private String ns;
 		private KeyRecord singleRecord;
+		private KeyRecord currentRecord;
 
 		public KeyRecordIterator (String ns)
 		{
 			this.ns = ns;
 		}
 
+		public KeyRecordIterator(String ns, KeyRecord singleRecord) : this(ns){
+
+			this.singleRecord = singleRecord;
+
+		}
 		public KeyRecordIterator(String ns, RecordSet recordSet) : this(ns){
 			
 			this.recordSet = recordSet;
@@ -51,39 +57,54 @@ namespace Aerospike.Helper.Query
 					recordSet.Close();
 				if (resultSet != null)
 					resultSet.Close();
-				if (singleRecord != null)
-					singleRecord = null;
+				singleRecord = null;
 		}
 
-		public System.Collections.IEnumerator GetEnumerator(){
-		//public KeyRecord Next() {
-			KeyRecord keyRecord = null;
-
+		public bool MoveNext(){
+			bool hasNext = false;
 			if (this.recordSet != null && this.recordSet.Next()) {
-				keyRecord = new KeyRecord(this.recordSet.Key, this.recordSet.Record);
+				currentRecord = new KeyRecord(this.recordSet.Key, this.recordSet.Record);
+				hasNext = true;
 
-			} else if (this.resultSet != null) {
-				Dictionary<String, Object> map = (Dictionary<String, Object>) this.resultSet.Next();
+			} else if (this.resultSet != null && this.resultSet.Next()) {
+				Dictionary<String, Object> map = (Dictionary<String, Object>) this.resultSet.Object;
 				Dictionary<String,Object> meta = (Dictionary<String, Object>) map[META_DATA];
 				map.Remove(META_DATA);
 				Dictionary<String,Object> binMap = new Dictionary<String, Object>(map);
 				if (log.IsDebugEnabled){
-//					for (Map.Entry<String, Object> entry : map.entrySet())
-//					{
-//						log.Debug(entry.getKey() + " = " + entry.getValue());
-//					}
+					//					for (Map.Entry<String, Object> entry : map.entrySet())
+					//					{
+					//						log.Debug(entry.getKey() + " = " + entry.getValue());
+					//					}
 				}
-				long generation =  (long) meta[GENERATION];
-				long ttl =  (long) meta[EXPIRY];
+				int generation =  (int) meta[GENERATION];
+				int ttl =  (int) meta[EXPIRY];
 				Record record = new Record(binMap, generation, ttl);
 				Key key = new Key(ns, (byte[]) meta[DIGEST], (String) meta[SET_NAME], null);
-				keyRecord = new KeyRecord(key , record);
+				currentRecord = new KeyRecord(key , record);
+				hasNext = true;
 
 			} else if (singleRecord != null){
-				keyRecord = singleRecord;
+				currentRecord = singleRecord;
 				singleRecord = null;
+				hasNext = true;
 			}
-			yield return keyRecord;
+
+			return hasNext;		
+		}
+
+		public void Reset(){
+		}
+
+		public Object Current
+		{
+			get { return currentRecord; }
+		}
+
+		public System.Collections.IEnumerator GetEnumerator(){
+		
+			return null; // dont know what to do here
+
 		}
 
 

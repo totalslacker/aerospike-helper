@@ -257,13 +257,13 @@ namespace Aerospike.Helper.Query
 		private IDictionary<String, long> update(KeyRecordIterator results, List<Bin> bins){
 			long readCount = 0;
 			long updateCount = 0;
-			while (results.hasNext()){
-				KeyRecord keyRecord = results.next();
+			while (results.MoveNext()){
+				KeyRecord keyRecord = (KeyRecord) results.Current;
 				readCount++;
 				WritePolicy up = new WritePolicy(updatePolicy);
 				up.generation = keyRecord.record.generation;
 				try {
-					client.put(up, keyRecord.key, bins.ToArray());
+					client.Put(up, keyRecord.key, bins.ToArray());
 					updateCount++;
 				} catch (AerospikeException e){
 					log.Error("Unexpected exception "+ keyRecord.key, e);
@@ -299,15 +299,15 @@ namespace Aerospike.Helper.Query
 				map["write"] = 1L;
 				return map;
 			}
-			KeyRecordIterator results = Select(stmt, true, qualifiers);
+			KeyRecordIterator results = select(stmt, true, qualifiers);
 			return Delete(results);
 		}
 
 		public IDictionary<String, long> Delete(KeyRecordIterator results){
 			long readCount = 0;
 			long updateCount = 0;
-			while (results.HasNext){
-				KeyRecord keyRecord = results.Next();
+			while (results.MoveNext()){
+				KeyRecord keyRecord = (KeyRecord)results.Current;
 				readCount++;
 				try {
 					if (client.Delete(null, keyRecord.key))
@@ -426,10 +426,13 @@ namespace Aerospike.Helper.Query
 			return namespaceCache [ns];
 		}
 
-		public List<Namespace> GetNamespaces ()
-		{
-			return namespaceCache.Values;
+		public SortedDictionary<string, Namespace>.ValueCollection Namespaces {
+			
+			get {
+				return namespaceCache.Values;
+			}
 		}
+
 
 		[MethodImpl (MethodImplOptions.Synchronized)]
 		public void RefreshIndexes ()

@@ -140,7 +140,7 @@ namespace Aerospike.Helper.Model
 							long newValue = Int64.Parse(value);
 							long oldValue = Int64.Parse(storedValue.value.ToString());
 							storedValue.value = (oldValue + newValue);
-						} catch (FormatException e){
+						} catch (FormatException){
 							storedValue.value = value;
 						}
 					} else {
