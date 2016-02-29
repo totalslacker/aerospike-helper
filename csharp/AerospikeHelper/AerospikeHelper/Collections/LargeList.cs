@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Aerospike.Client;
 
-namespace AerospikeHelper.Collections
+namespace Aerospike.Helper.Collections
 {
 	public sealed class LargeList
 	{

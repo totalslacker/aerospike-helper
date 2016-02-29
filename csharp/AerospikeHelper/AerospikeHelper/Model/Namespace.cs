@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections;
 
-namespace AerospikeHelper.Model
+namespace Aerospike.Helper.Model
 {
 	public class Namespace
 	{

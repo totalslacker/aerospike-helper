@@ -1,8 +1,8 @@
 ﻿using System;
-using AerospikeHelper.Model;
+using Aerospike.Helper.Model;
 using Aerospike.Client;
 
-namespace AerospikeHelper.Query
+namespace Aerospike.Helper.Query
 {
 	/// <summary>
 	/// Qualifier used to query by primary key

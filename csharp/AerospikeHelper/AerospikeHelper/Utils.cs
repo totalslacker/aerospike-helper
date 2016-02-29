@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using AerospikeHelper.Model;
+using Aerospike.Helper.Model;
 using Aerospike.Client;
 using System.Text;
 
-namespace AerospikeHelper
+namespace Aerospike.Helper
 {
 	public class Utils
 	{

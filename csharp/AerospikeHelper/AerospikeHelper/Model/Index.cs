@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Aerospike.Client;
 
-namespace AerospikeHelper.Model
+namespace Aerospike.Helper.Model
 {
 	public class Index
 	{

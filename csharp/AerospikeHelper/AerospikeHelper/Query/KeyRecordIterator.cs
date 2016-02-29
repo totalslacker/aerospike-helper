@@ -2,10 +2,10 @@
 using log4net;
 using Aerospike.Client;
 using System.Collections.Generic;
-using AerospikeHelper.Model;
+using Aerospike.Helper.Model;
 using System.Runtime.CompilerServices;
 
-namespace AerospikeHelper
+namespace Aerospike.Helper.Query
 {
 	/// <summary>
 	/// Iterator for traversing a collection of KeyRecords
@@ -28,14 +28,14 @@ namespace AerospikeHelper
 			this.ns = ns;
 		}
 
-		public KeyRecordIterator(String ns, RecordSet recordSet) : base(ns){
+		public KeyRecordIterator(String ns, RecordSet recordSet) : this(ns){
 			
 			this.recordSet = recordSet;
 
 		}
 
 
-		public KeyRecordIterator(String ns, ResultSet resultSet) : base(ns){
+		public KeyRecordIterator(String ns, ResultSet resultSet) : this(ns){
 			this.resultSet = resultSet;
 
 		}

@@ -67,6 +67,7 @@
     <Compile Include="Query\QueryEngine.cs" />
     <Compile Include="Query\KeyQualifier.cs" />
     <Compile Include="Query\KeyRecordIterator.cs" />
+    <Compile Include="Query\GenerationQualifier.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

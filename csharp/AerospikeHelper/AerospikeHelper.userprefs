@@ -1,4 +1,4 @@
-﻿<Properties StartupItem="AerospikeHelper/AerospikeHelper.csproj">
+﻿<Properties StartupItem="AerospikeHelper/Aerospike.Helper.csproj">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
   <MonoDevelop.Ide.Workbench ActiveDocument="AerospikeHelper/Query/QueryEngine.cs">
     <Files>

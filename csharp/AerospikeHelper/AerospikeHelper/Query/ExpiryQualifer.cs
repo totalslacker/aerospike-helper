@@ -1,7 +1,7 @@
 ﻿using System;
 using Aerospike.Client;
 
-namespace AerospikeHelper.Query
+namespace Aerospike.Helper.Query
 {
 	public class ExpiryQualifer : Qualifier
 	{

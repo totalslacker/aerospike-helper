@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Aerospike.Client;
 
 
-namespace AerospikeHelper.Query
+namespace Aerospike.Helper.Query
 {
 	public class Qualifier //: IDictionary<String, Object> 
 	{

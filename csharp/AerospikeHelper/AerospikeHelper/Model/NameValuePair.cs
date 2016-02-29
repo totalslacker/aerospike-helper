@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace AerospikeHelper.Model
+namespace Aerospike.Helper.Model
 {
 	public class NameValuePair
 	{

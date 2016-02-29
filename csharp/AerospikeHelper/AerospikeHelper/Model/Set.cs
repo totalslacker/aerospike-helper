@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace AerospikeHelper.Model
+namespace Aerospike.Helper.Model
 {
 	public class Set
 	{

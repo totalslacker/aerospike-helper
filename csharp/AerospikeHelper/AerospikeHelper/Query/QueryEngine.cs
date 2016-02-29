@@ -2,12 +2,13 @@
 using log4net;
 using Aerospike.Client;
 using System.Collections.Generic;
-using AerospikeHelper.Model;
+using Aerospike.Helper.Model;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 
 
-namespace AerospikeHelper.Query
+namespace Aerospike.Helper.Query
 {
 	/// <summary>
 	/// This class provides a multi-filter query engine that
@@ -78,6 +79,128 @@ namespace AerospikeHelper.Query
 		}
 
 		#region Select
+		public KeyRecordIterator Select(string ns, string set, Filter filter, IDictionary<String, String> sortMap, params Qualifier[] qualifiers){
+			Statement stmt = new Statement();
+			stmt.Namespace = ns;
+			stmt.SetName = set;
+			if (filter != null)
+				stmt.Filters = new Filter[] { filter };
+			return select(stmt, sortMap, qualifiers);	
+
+		}
+		public KeyRecordIterator select(Statement stmt, IDictionary<String, String> sortMap, params Qualifier[] qualifiers){
+			KeyRecordIterator results = null;
+
+			if (qualifiers != null && qualifiers.Length > 0) {
+				IDictionary<String, Object> originArgs = new Dictionary<String, Object>();
+				originArgs["includeAllFields"] = 1;
+				string filterFuncStr = buildFilterFunction(qualifiers);
+				originArgs["filterFuncStr"] = filterFuncStr;
+				string sortFuncStr = buildSortFunction(sortMap);
+				originArgs["sortFuncStr"] = sortFuncStr;
+				stmt.SetAggregateFunction(QUERY_MODULE, "select_records", Value.Get(originArgs));
+				ResultSet resultSet = this.client.QueryAggregate(null, stmt);
+				results = new KeyRecordIterator(stmt.Namespace, resultSet);
+			} else {
+				RecordSet recordSet = this.client.Query(null, stmt);
+				results = new KeyRecordIterator(stmt.Namespace, recordSet);
+			} 
+			return results;
+		}
+
+		public KeyRecordIterator select(String ns, String set, Filter filter, params Qualifier[] qualifiers){
+			Statement stmt = new Statement();
+			stmt.Namespace = ns;
+			stmt.SetName = set;
+			if (filter != null)
+				stmt.Filters = new Filter[] { filter };
+			return select(stmt, qualifiers);
+		}
+
+
+
+
+	
+	 /// Select records filtered by Qualifiers
+	 /// @param stmt
+	 /// @param qualifiers
+	 /// @return
+	 ///
+		public KeyRecordIterator select(Statement stmt, params Qualifier[] qualifiers){
+			return select(stmt, false, qualifiers);
+		}
+		public KeyRecordIterator select(Statement stmt, bool metaOnly, params Qualifier[] qualifiers){
+			KeyRecordIterator results = null;
+		/*
+		 * no filters
+		 */
+			if (qualifiers == null || qualifiers.Length == 0)  {
+				RecordSet recordSet = this.client.Query(null, stmt);
+				results = new KeyRecordIterator(stmt.Namespace, recordSet);
+				return results;
+			}
+		/*
+		 * singleton using primary key
+		 */
+			if (qualifiers != null && qualifiers.Length == 1 && qualifiers[0] is KeyQualifier)  {
+				KeyQualifier kq = (KeyQualifier)qualifiers[0];
+				Key key = kq.MakeKey(stmt.Namespace, stmt.SetName);
+				//System.out.println(key);
+				Record record = null;
+				if (metaOnly)
+					record = this.client.GetHeader(null, key);
+				else
+					record = this.client.Get(null, key, stmt.BinNames);
+				if (record == null){
+					results = new KeyRecordIterator(stmt.Namespace);
+				} else {
+					KeyRecord keyRecord = new KeyRecord(key, record);
+					results = new KeyRecordIterator(stmt.Namespace, keyRecord);
+				}
+				return results;
+			}
+		/*
+		 *  query with filters
+		 */
+			IDictionary<String, Object> originArgs = new Dictionary<String, Object>();
+			originArgs["includeAllFields"] = 1;
+
+			for (int i = 0; i < qualifiers.Length; i++){
+				Qualifier qualifier = qualifiers[i];
+				if (isIndexedBin(qualifier)){
+					Filter filter = qualifier.AsFilter();
+					if (filter != null){
+						stmt.Filters = new Filter[] { filter };
+						qualifiers[i] = null;
+						break;
+					}
+				}
+			}
+
+			String filterFuncStr = buildFilterFunction(qualifiers);
+			originArgs["filterFuncStr"] = filterFuncStr;
+
+			if (metaOnly)
+				stmt.SetAggregateFunction(QUERY_MODULE, "query_meta", Value.Get(originArgs));
+			else
+				stmt.SetAggregateFunction(QUERY_MODULE, "select_records", Value.Get(originArgs));
+
+			ResultSet resultSet = this.client.QueryAggregate(null, stmt);
+			results = new KeyRecordIterator(stmt.Namespace, resultSet);
+			return results;
+		}
+
+		protected bool isIndexedBin(Qualifier qualifier){
+			Index index = this.indexCache[qualifier.Field];
+			if (index == null)
+				return false;
+
+			Qualifier.FilterOperation operation = qualifier.getOperation();
+			if (operation != Qualifier.FilterOperation.EQ && operation != Qualifier.FilterOperation.BETWEEN)
+				return false;
+
+			return true;
+		}
 
 		#endregion
 
@@ -109,6 +232,49 @@ namespace AerospikeHelper.Query
 		#endregion
 
 		#region Update
+	///
+	 /// The list of Bins will update each record that match the Qualifiers supplied.
+	 /// @param stmt 
+	 /// @param bins
+	 /// @param qualifiers
+	 /// @return
+	 ///
+		public IDictionary<String, long> update(Statement stmt, List<Bin> bins, params Qualifier[] qualifiers){
+			if (qualifiers != null && qualifiers.Length == 1 && qualifiers[0] is KeyQualifier)  {
+				KeyQualifier keyQualifier = (KeyQualifier)qualifiers[0];
+				Key key = keyQualifier.MakeKey(stmt.Namespace, stmt.SetName);
+				this.client.Put(this.updatePolicy, key, bins.ToArray());
+				IDictionary<String, long> result = new Dictionary<String, long>();
+				result["read"] = 1L;
+				result["write"] = 1L;
+				return result;
+			} else {
+				KeyRecordIterator results = select(stmt, true, qualifiers);
+				return update(results, bins);
+			}
+		}
+
+		private IDictionary<String, long> update(KeyRecordIterator results, List<Bin> bins){
+			long readCount = 0;
+			long updateCount = 0;
+			while (results.hasNext()){
+				KeyRecord keyRecord = results.next();
+				readCount++;
+				WritePolicy up = new WritePolicy(updatePolicy);
+				up.generation = keyRecord.record.generation;
+				try {
+					client.put(up, keyRecord.key, bins.ToArray());
+					updateCount++;
+				} catch (AerospikeException e){
+					log.Error("Unexpected exception "+ keyRecord.key, e);
+
+				}
+			}
+			IDictionary<String, long> map = new Dictionary<String, long>();
+			map["read"] = readCount;
+			map["write"] = updateCount;
+			return map;
+		}
 
 		#endregion
 
@@ -120,7 +286,7 @@ namespace AerospikeHelper.Query
 			 * using Scan UDF delete
 			 */
 				ExecuteTask task = client.Execute(null, stmt, QUERY_MODULE, "delete_record");
-				while (!task.IsDone)
+				while (!task.IsDone())
 					Thread.Sleep (10);
 				return null;
 			}
@@ -181,7 +347,7 @@ namespace AerospikeHelper.Query
 		{
 			if (GetModule (QUERY_MODULE + ".lua") == null) { // register the as_utility udf module
 
-				RegisterTask task = this.client.Register (null, this.getClass ().getClassLoader (), 
+				RegisterTask task = this.client.Register (null,  
 					                    AS_UTILITY_PATH, 
 					                    QUERY_MODULE + ".lua", Language.LUA);
 				task.IsDone ();
