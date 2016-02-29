@@ -105,7 +105,7 @@ public class QueryEngine implements Closeable{
 	}
 	public QueryEngine() {
 		super();
-		Value.UseDoubleType = true;
+		Value.UseDoubleType = true; // Note: this supports the Double particle type
 	}
 	
 	public void setClient(AerospikeClient client){
