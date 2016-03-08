@@ -103,9 +103,12 @@ public class Qualifier implements Map<String, Object>{
 		FilterOperation op = getOperation();
 		switch (op) {
 		case EQ:
-			return Filter.equal(getField(), getValue1());
+			if (getValue1().getType() == ParticleType.INTEGER)
+				return Filter.equal(getField(), getValue1().toLong());
+			else
+				return Filter.equal(getField(), getValue1().toString());
 		case BETWEEN:
-			return Filter.range(getField(), getValue1(), getValue2());
+			return Filter.range(getField(), getValue1().toLong(), getValue2().toLong());
 		case LIST_CONTAINS:
 			return collectionContains(IndexCollectionType.LIST);
 		case MAP_KEYS_CONTAINS:
