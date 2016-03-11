@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{4CAA60D1-6E35-48CF-9E82-36A0DF70D5BF}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Aerospike.Helper.Tests</RootNamespace>
+    <AssemblyName>Aerospike.Helper.Tests</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="nunit.framework">
+      <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="Neo.Lua">
+      <HintPath>..\packages\NeoLua.1.1.5\lib\net45\Neo.Lua.dll</HintPath>
+    </Reference>
+    <Reference Include="Neo.Lua.Desktop">
+      <HintPath>..\packages\NeoLua.1.1.5\lib\net45\Neo.Lua.Desktop.dll</HintPath>
+    </Reference>
+    <Reference Include="AerospikeClient">
+      <HintPath>..\packages\Aerospike.Client.3.1.7\lib\net40\AerospikeClient.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="HelperTests.cs" />
+    <Compile Include="TestQueryEngine.cs" />
+    <Compile Include="SelectorTests.cs" />
+    <Compile Include="DeleterTests.cs" />
+    <Compile Include="InserterTests.cs" />
+    <Compile Include="UpdaterTests.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AerospikeHelper\Aerospike.Helper.csproj">
+      <Project>{B93E0ECF-2369-409A-8C94-02C0BC0AF2C3}</Project>
+      <Name>Aerospike.Helper</Name>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

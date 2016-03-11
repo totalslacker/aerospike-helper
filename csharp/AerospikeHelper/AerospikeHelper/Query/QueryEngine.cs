@@ -22,7 +22,7 @@ namespace Aerospike.Helper.Query
 		protected const String QUERY_MODULE = "as_utility_1_0";
 		//DO NOT use decimal places in the module name
 
-		protected const String AS_UTILITY_PATH = QUERY_MODULE + ".lua";
+		protected const String AS_UTILITY_PATH = "lua";
 
 		protected static readonly ILog log = LogManager.GetLogger (typeof(QueryEngine));
 
@@ -85,10 +85,10 @@ namespace Aerospike.Helper.Query
 			stmt.SetName = set;
 			if (filter != null)
 				stmt.Filters = new Filter[] { filter };
-			return select(stmt, sortMap, qualifiers);	
+			return Select(stmt, sortMap, qualifiers);	
 
 		}
-		public KeyRecordIterator select(Statement stmt, IDictionary<String, String> sortMap, params Qualifier[] qualifiers){
+		public KeyRecordIterator Select(Statement stmt, IDictionary<String, String> sortMap, params Qualifier[] qualifiers){
 			KeyRecordIterator results = null;
 
 			if (qualifiers != null && qualifiers.Length > 0) {
@@ -108,13 +108,13 @@ namespace Aerospike.Helper.Query
 			return results;
 		}
 
-		public KeyRecordIterator select(String ns, String set, Filter filter, params Qualifier[] qualifiers){
+		public KeyRecordIterator Select(String ns, String set, Filter filter, params Qualifier[] qualifiers){
 			Statement stmt = new Statement();
 			stmt.Namespace = ns;
 			stmt.SetName = set;
 			if (filter != null)
 				stmt.Filters = new Filter[] { filter };
-			return select(stmt, qualifiers);
+			return Select(stmt, qualifiers);
 		}
 
 
@@ -126,10 +126,10 @@ namespace Aerospike.Helper.Query
 	 /// @param qualifiers
 	 /// @return
 	 ///
-		public KeyRecordIterator select(Statement stmt, params Qualifier[] qualifiers){
-			return select(stmt, false, qualifiers);
+		public KeyRecordIterator Select(Statement stmt, params Qualifier[] qualifiers){
+			return Select(stmt, false, qualifiers);
 		}
-		public KeyRecordIterator select(Statement stmt, bool metaOnly, params Qualifier[] qualifiers){
+		public KeyRecordIterator Select(Statement stmt, bool metaOnly, params Qualifier[] qualifiers){
 			KeyRecordIterator results = null;
 		/*
 		 * no filters
@@ -239,7 +239,7 @@ namespace Aerospike.Helper.Query
 	 /// @param qualifiers
 	 /// @return
 	 ///
-		public IDictionary<String, long> update(Statement stmt, List<Bin> bins, params Qualifier[] qualifiers){
+		public IDictionary<String, long> Update(Statement stmt, List<Bin> bins, params Qualifier[] qualifiers){
 			if (qualifiers != null && qualifiers.Length == 1 && qualifiers[0] is KeyQualifier)  {
 				KeyQualifier keyQualifier = (KeyQualifier)qualifiers[0];
 				Key key = keyQualifier.MakeKey(stmt.Namespace, stmt.SetName);
@@ -249,12 +249,12 @@ namespace Aerospike.Helper.Query
 				result["write"] = 1L;
 				return result;
 			} else {
-				KeyRecordIterator results = select(stmt, true, qualifiers);
-				return update(results, bins);
+				KeyRecordIterator results = Select(stmt, true, qualifiers);
+				return Update(results, bins);
 			}
 		}
 
-		private IDictionary<String, long> update(KeyRecordIterator results, List<Bin> bins){
+		private IDictionary<String, long> Update(KeyRecordIterator results, List<Bin> bins){
 			long readCount = 0;
 			long updateCount = 0;
 			while (results.MoveNext()){
@@ -299,7 +299,7 @@ namespace Aerospike.Helper.Query
 				map["write"] = 1L;
 				return map;
 			}
-			KeyRecordIterator results = select(stmt, true, qualifiers);
+			KeyRecordIterator results = Select(stmt, true, qualifiers);
 			return Delete(results);
 		}
 

@@ -10,3 +10,5 @@ csharp/AerospikeHelper/AerospikeHelper/obj
 csharp/AerospikeHelper/packages/Aerospike.Client.3.1.7/lib
 csharp/AerospikeHelper/packages/NeoLua.0.9.14/lib
 csharp/AerospikeHelper/packages
+csharp/AerospikeHelper/Aerospike.Helper.Tests/bin
+csharp/AerospikeHelper/Aerospike.Helper.Tests/obj
