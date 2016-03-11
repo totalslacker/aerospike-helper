@@ -8,7 +8,7 @@ It includes
 
 The library is implemented in Java and C# 
 
-[Java Documentation](java/doc/README.md)
+[Java Documentation](java/README.md)
 
-[C# Documentation](csharp/doc/README.md)
+[C# Documentation](csharp/README.md)
 

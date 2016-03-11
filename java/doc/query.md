@@ -53,19 +53,19 @@ This example is an insert equivalent to this sql statement:
 Java
 
 ```java
-			Bin name = new Bin("name", "name:" + x);
-			Bin age = new Bin("age", ages[i]);
-			Bin colour = new Bin("color", colours[i]);
-			Bin animal = new Bin("animal", animals[i]);
-			List<Bin> bins = Arrays.asList(name, age, colour, animal);
+	Bin name = new Bin("name", "name:" + x);
+	Bin age = new Bin("age", ages[i]);
+	Bin colour = new Bin("color", colours[i]);
+	Bin animal = new Bin("animal", animals[i]);
+	List<Bin> bins = Arrays.asList(name, age, colour, animal);
 			
-			Key key = new Key("test", "selector", keyString);
-			KeyQualifier kq = new KeyQualifier(key.digest);
-			Statement stmt = new Statement();
-			stmt.setNamespace(QueryEngineTests.NAMESPACE);
-			stmt.setSetName(QueryEngineTests.SET_NAME);
+	Key key = new Key("test", "selector", keyString);
+	KeyQualifier kq = new KeyQualifier(key.digest);
+	Statement stmt = new Statement();
+	stmt.setNamespace(QueryEngineTests.NAMESPACE);
+	stmt.setSetName(QueryEngineTests.SET_NAME);
 			
-			queryEngine.insert(stmt, kq, bins);
+	queryEngine.insert(stmt, kq, bins);
 
 ```
 ## Update example

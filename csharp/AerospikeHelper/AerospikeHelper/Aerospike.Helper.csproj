@@ -72,8 +72,10 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Folder Include="Collections\" />
+    <Folder Include="lua\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="lua\as_utility_1_0.lua" />
   </ItemGroup>
 </Project>
