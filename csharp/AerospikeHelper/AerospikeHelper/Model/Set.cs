@@ -56,8 +56,8 @@ namespace Aerospike.Helper.Model
 					String[] kv = part.Split('=');
 					String key = kv[0];
 					String value = kv[1];
-					NameValuePair storedValue = values[key];
-					if (storedValue == null){
+					NameValuePair storedValue = null;
+					if (!values.TryGetValue(key, out storedValue)){
 						storedValue = new NameValuePair(this, key, value);
 						values.Add(key, storedValue);
 					} else {

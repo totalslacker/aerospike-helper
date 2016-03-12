@@ -5,7 +5,7 @@ using Aerospike.Client;
 using Aerospike.Helper.Query;
 
 
-namespace Aerospike.Helper.Tests
+namespace Aerospike.Helper.Query
 {
 	[TestFixture ()]
 	public class InserterTests : HelperTests
@@ -37,7 +37,7 @@ namespace Aerospike.Helper.Tests
 			queryEngine.Close();
 		}
 
-		[Test ()]
+		[TestCase]
 		public void insertByKey(){
 			int i = 0;
 			for (int x = 1; x <= TestQueryEngine.RECORD_COUNT; x++){
@@ -66,7 +66,7 @@ namespace Aerospike.Helper.Tests
 					i = 0;
 			}
 		}
-		[Test ()]
+		[TestCase]
 		public void insertByDigest(){
 
 			int i = 0;

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Aerospike.Helper.Tests
+namespace Aerospike.Helper.Query
 {
 	public class TestQueryEngine
 	{

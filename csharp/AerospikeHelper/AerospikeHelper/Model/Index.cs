@@ -49,7 +49,11 @@ namespace Aerospike.Helper.Model
 		{
 			get
 			{
-				return 	values["bins"];
+				String binName = "";
+				if (values != null && values.TryGetValue("bin", out binName))
+					return 	binName;
+				else
+					return null;
 			}
 		}
 		public IndexType Type 

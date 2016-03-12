@@ -3,7 +3,7 @@
   <MonoDevelop.Ide.Workbench ActiveDocument="AerospikeHelper/Query/QueryEngine.cs">
     <Files>
       <File FileName="AerospikeHelper/Query/QueryEngine.cs" Line="423" Column="3" />
-      <File FileName="AerospikeHelper/Model/Namespace.cs" Line="143" Column="31" />
+      <File FileName="AerospikeHelper/Model/Namespace.cs" Line="1" Column="1" />
       <File FileName="../../../aerospike-client-csharp/AerospikeDemo/QueryAverage.cs" Line="1" Column="1" />
       <File FileName="AerospikeHelper/Query/KeyRecordIterator.cs" Line="1" Column="1" />
       <File FileName="AerospikeHelper/Model/Module.cs" Line="1" Column="1" />

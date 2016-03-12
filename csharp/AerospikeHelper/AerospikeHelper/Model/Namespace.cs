@@ -9,8 +9,7 @@ namespace Aerospike.Helper.Model
 		protected String name;
 		protected Dictionary<String, Set> sets;
 		protected Dictionary<String, NameValuePair> values;
-		protected HashSet<String> dontMerge = new HashSet<String>
-		{
+		protected HashSet<String> dontMerge = new HashSet<String> {
 			"available-bin-names", 
 			"cold-start-evict-ttl", 
 			"current-time",
@@ -27,16 +26,19 @@ namespace Aerospike.Helper.Model
 			"stop-writes-pct"
 		};
 
-		public Namespace(String name) {
+		public Namespace (String name)
+		{
 			this.name = name;
 			values = new Dictionary<String, NameValuePair>();
 		}
 
-		public override String ToString() {
+		public override String ToString ()
+		{
 			return this.name;
 		}
 
-		public override bool Equals(Object obj) {
+		public override bool Equals (Object obj)
+		{
 			return ((obj is Namespace) &&
 				(obj.ToString().Equals(ToString())));
 		}
@@ -49,59 +51,65 @@ namespace Aerospike.Helper.Model
 		}
 
 
-		public void AddSet(String setData){
+		public void AddSet (String setData)
+		{
 			if (sets == null)
-				sets = new Dictionary<String, Set>();
-			Set newSet = new Set(this, setData);
-			Set existingSet = sets[newSet.Name];
-			if (existingSet == null){
-				sets.Add(newSet.Name, newSet);
+				sets = new Dictionary<String, Set> ();
+			Set newSet = new Set (this, setData);
+			Set existingSet = null;
+			if (!sets.TryGetValue (newSet.Name, out existingSet)) {
+				sets.Add (newSet.Name, newSet);
 			} else {
 				existingSet.Info(setData);
 			}
 		}
 
-		public void MergeSet(String setData){
+		public void MergeSet (String setData)
+		{
+			if (setData == null || setData.Length == 0)
+				return;
 			if (sets == null)
-				sets = new Dictionary<String, Set>();
-			Set newSet = new Set(this, setData);
-			Set existingSet = sets[newSet.Name];
-			if (existingSet == null){
-				sets.Add(newSet.Name, newSet);
+				sets = new Dictionary<String, Set> ();
+			Set newSet = new Set (this, setData);
+			Set existingSet = null;
+			if (!sets.TryGetValue (newSet.Name, out existingSet)) {
+				sets.Add (newSet.Name, newSet);
 			} else {
-				existingSet.MergeSetInfo(setData);
+				existingSet.MergeSetInfo (setData);
 			}
 		}
 
-		public Dictionary<String, Set> Sets() {
+		public Dictionary<String, Set> Sets ()
+		{
 			if (sets == null)
 				sets = new Dictionary<String, Set>();
 			return sets;
 		}
 
-		public String Name() {
-			return ToString();
+		public String Name ()
+		{
+			return ToString ();
 		}
 
-		public void Clear(){
-			if (this.sets != null){
-				this.sets.Clear();
-				}
+		public void Clear ()
+		{
+			if (this.sets != null) {
+				this.sets.Clear ();
+			}
 
 		}
 		//	public void setValues(Map<String, NameValuePair> newValues){
 		//		this.values = newValues;
 		//	}
 
-		public Dictionary<String, NameValuePair> Values
-		{
-			get
-			{
+		public Dictionary<String, NameValuePair> Values {
+			get {
 				return values;
 			}
 		}
 
-		public void Info(String info, Dictionary<String, NameValuePair> map, bool merge) {
+		public void Info (String info, Dictionary<String, NameValuePair> map, bool merge)
+		{
 			/*
 		type=device;objects=0;master-objects=0;prole-objects=0;expired-objects=0;evicted-objects=0; \
 		set-deleted-objects=0;set-evicted-objects=0;used-bytes-memory=18688;data-used-bytes-memory=0; \
@@ -124,23 +132,24 @@ namespace Aerospike.Helper.Model
 
 			if (info.Length == 0)
 				return;
-			String[] parts = info.Split(';');
+			String[] parts = info.Split (';');
 
-			foreach (String part in parts){
-				String[] kv = part.Split('=');
-				String key = kv[0];
-				String value = kv[1];
-				NameValuePair storedValue = map[key];
-				if (storedValue == null){
-					storedValue = new NameValuePair(this, key, value);
-					map[key] = storedValue;
+			foreach (String part in parts) {
+				String[] kv = part.Split ('=');
+				String key = kv [0];
+				String value = kv [1];
+				NameValuePair storedValue = null;
+
+				if (!map.TryGetValue (key, out storedValue)) {
+					storedValue = new NameValuePair (this, key, value);
+					map [key] = storedValue;
 				} else {
-					if (merge && !dontMerge.Contains(key)){
-						try{
-							long newValue = Int64.Parse(value);
-							long oldValue = Int64.Parse(storedValue.value.ToString());
+					if (merge && !dontMerge.Contains (key)) {
+						try {
+							long newValue = Int64.Parse (value);
+							long oldValue = Int64.Parse (storedValue.value.ToString ());
 							storedValue.value = (oldValue + newValue);
-						} catch (FormatException){
+						} catch (FormatException) {
 							storedValue.value = value;
 						}
 					} else {
@@ -149,18 +158,23 @@ namespace Aerospike.Helper.Model
 				}
 			}
 		}
-		public void NamespaceInfo(String info) {
-			Info(info, values, false);
+
+		public void NamespaceInfo (String info)
+		{
+			Info (info, values, false);
 
 		}
-		public void  MergeNamespaceInfo(String info){
-			Info(info, values, true);
+
+		public void  MergeNamespaceInfo (String info)
+		{
+			Info (info, values, true);
 		}
 
-		public Set FindSet(String tableName) {
+		public Set FindSet (String tableName)
+		{
 			Set result = null;
 			this.sets.TryGetValue (tableName, out result);
-				return result;
+			return result;
 		}
 	}
 }

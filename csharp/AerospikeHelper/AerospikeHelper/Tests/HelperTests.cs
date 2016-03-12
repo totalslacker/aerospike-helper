@@ -3,9 +3,9 @@ using Aerospike.Client;
 using Aerospike.Helper.Query;
 using NUnit.Framework;
 
-namespace Aerospike.Helper.Tests
+namespace Aerospike.Helper.Query
 {
-	[SetUpFixture]
+	[TestFixture]
 	public class HelperTests
 	{
 		protected AerospikeClient client;
@@ -28,11 +28,13 @@ namespace Aerospike.Helper.Tests
 		}
 
 		[SetUp]
-		public void SetUp() {
+		public virtual void SetUp() {
 			try
 			{
+				Console.WriteLine("Creating QueryEngine");
 				queryEngine = new QueryEngine(client);
 				int i = 0;
+				Console.WriteLine("Creating Test Data");
 				Key key = new Key(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "selector-test:"+ 10);
 				if (this.client.Exists(null, key))
 					return;
@@ -47,14 +49,18 @@ namespace Aerospike.Helper.Tests
 					if ( i == 5)
 						i = 0;
 				}
+				Console.WriteLine("Created Test Data");
 			}	catch (Exception ex)
 				{
-					caughtException = ex;               
+					caughtException = ex; 
+					Console.WriteLine(string.Format("TestFixtureSetUp failed in {0} - {1}", this.GetType(), caughtException.Message));
+					Console.WriteLine (caughtException.StackTrace);
 				}
 		}
 
 		[TearDown]
-		public void TearDown() {
+		public virtual void TearDown() {
+			Console.WriteLine("ClosingQueryEngine");
 			queryEngine.Close();
 			if (caughtException != null)
 			{

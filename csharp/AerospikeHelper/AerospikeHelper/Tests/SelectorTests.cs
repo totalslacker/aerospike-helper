@@ -3,7 +3,7 @@ using NUnit.Framework;
 using Aerospike.Client;
 using Aerospike.Helper.Query;
 
-namespace Aerospike.Helper.Tests
+namespace Aerospike.Helper.Query
 {
 	[TestFixture ()]
 	public class SelectorTests : HelperTests
@@ -12,7 +12,7 @@ namespace Aerospike.Helper.Tests
 		{
 			
 		}
-		[Test ()]
+		[TestCase]
 		public void SelectOneWitKey() {
 			Statement stmt = new Statement();
 			stmt.Namespace = TestQueryEngine.NAMESPACE;
@@ -30,7 +30,7 @@ namespace Aerospike.Helper.Tests
 			Assert.AreEqual(1, count);
 		}
 
-		[Test ()]
+		[TestCase]
 		public void SelectAll() {
 			KeyRecordIterator it = queryEngine.Select(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, null);
 			try {
@@ -42,7 +42,7 @@ namespace Aerospike.Helper.Tests
 			}
 		}
 
-		[Test ()]
+		[TestCase]
 		public void SelectOnIndex() {
 			IndexTask task = this.client.CreateIndex(null, TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "age_index", "age", IndexType.NUMERIC);
 			task.Wait();
@@ -58,7 +58,7 @@ namespace Aerospike.Helper.Tests
 				it.Close();
 			}
 		}
-		[Test ()]
+		[TestCase]
 		public void SelectStartsWith() {
 			Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.ENDS_WITH, Value.Get("e"));
 			KeyRecordIterator it = queryEngine.Select(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, null, qual1);
@@ -72,7 +72,7 @@ namespace Aerospike.Helper.Tests
 				it.Close();
 			}
 		}
-		[Test ()]
+		[TestCase]
 		public void SelectEndsWith() {
 			Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.Get("blue"));
 			Qualifier qual2 = new Qualifier("name", Qualifier.FilterOperation.START_WITH, Value.Get("na"));
@@ -87,7 +87,7 @@ namespace Aerospike.Helper.Tests
 				it.Close();
 			}
 		}
-		[Test ()]
+		[TestCase]
 		public void SelectOnIndexWithQualifiers() {
 			IndexTask task = this.client.CreateIndex(null, TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "age_index_selector", "age", IndexType.NUMERIC);
 			task.Wait();
@@ -105,7 +105,7 @@ namespace Aerospike.Helper.Tests
 				it.Close();
 			}
 		}
-		[Test ()]
+		[TestCase]
 		public void SelectWithQualifiersOnly() {
 			IndexTask task = this.client.CreateIndex(null, TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "age_index", "age", IndexType.NUMERIC);
 			task.Wait();
@@ -124,7 +124,7 @@ namespace Aerospike.Helper.Tests
 				it.Close();
 			}
 		}
-		[Test ()]
+		[TestCase]
 		public void SelectWithGeneration() {
 			queryEngine.refreshCluster();
 			Qualifier qual1 = new GenerationQualifier(Qualifier.FilterOperation.GTEQ, Value.Get(1));

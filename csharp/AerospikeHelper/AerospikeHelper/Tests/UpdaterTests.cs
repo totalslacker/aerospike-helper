@@ -4,16 +4,18 @@ using NUnit.Framework;
 using Aerospike.Client;
 using Aerospike.Helper.Query;
 
-namespace Aerospike.Helper.Tests
+
+namespace Aerospike.Helper.Query
 {
-	[TestFixture ()]
-	public class DeleterTests : HelperTests
+	[TestFixture]
+	public class UpdaterTests : HelperTests
 	{
-		public DeleterTests () :base ()
+		public UpdaterTests () : base()
 		{
 		}
-		[Test ()]
-		public void DeleteByKey(){
+
+		[TestCase]
+		public void UpdateByKey(){
 			for (int x = 1; x <= TestQueryEngine.RECORD_COUNT; x++){
 				String keyString = "selector-test:"+x;
 				Key key = new Key(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, keyString);
@@ -21,14 +23,22 @@ namespace Aerospike.Helper.Tests
 				Statement stmt = new Statement();
 				stmt.Namespace = TestQueryEngine.NAMESPACE;
 				stmt.SetName = TestQueryEngine.SET_NAME;
-				IDictionary<String, long> counts = queryEngine.Delete(stmt, kq);
+
+				List<Bin> bins = new List<Bin>() {
+						new Bin("ending", "ends with e")
+					};
+
+				IDictionary<String, long> counts = queryEngine.Update(stmt, bins, kq );
 				Assert.AreEqual((long)1L, (long)counts["write"]);
 				Record record = this.client.Get(null, key);
-				Assert.IsNull(record);
+				Assert.NotNull(record);
+				String ending = record.GetString("ending");
+				Assert.True(ending.EndsWith("ends with e"));
 			}
 		}
-		[Test ()]
-		public void DeleteByDigest(){
+		[TestCase]
+		public void UpdateByDigest(){
+
 			for (int x = 1; x <= TestQueryEngine.RECORD_COUNT; x++){
 				String keyString = "selector-test:"+x;
 				Key key = new Key(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, keyString);
@@ -36,55 +46,48 @@ namespace Aerospike.Helper.Tests
 				Statement stmt = new Statement();
 				stmt.Namespace = TestQueryEngine.NAMESPACE;
 				stmt.SetName = TestQueryEngine.SET_NAME;
-				IDictionary<String, long> counts = queryEngine.Delete(stmt, kq);
+
+				List<Bin> bins = new List<Bin>() {
+						new Bin("ending", "ends with e")
+					};
+
+				IDictionary<String, long> counts = queryEngine.Update(stmt, bins, kq );
 				Assert.AreEqual((long)1L, (long)counts["write"]);
 				Record record = this.client.Get(null, key);
-				Assert.IsNull(record);
+				Assert.NotNull(record);
+				String ending = record.GetString("ending");
+				Assert.True(ending.EndsWith("ends with e"));
 			}
 		}
-		[Test ()]
-		public void DeleteStartsWith() {
+		[TestCase]
+		public void UpdateStartsWith() {
 			Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.ENDS_WITH, Value.Get("e"));
+			List<Bin> bins = new List<Bin>() {
+					new Bin("ending", "ends with e")
+				};
 			Statement stmt = new Statement();
 			stmt.Namespace = TestQueryEngine.NAMESPACE;
 			stmt.SetName = TestQueryEngine.SET_NAME;
-			IDictionary<String, long> counts = queryEngine.Delete(stmt, qual1);
+			IDictionary<String, long> counts = queryEngine.Update(stmt, bins, qual1);
 			//System.out.println(counts);
-			//Assert.AreEqual((long)400L, (long)counts["read"]);
-			//Assert.AreEqual((long)400L, (long)counts["write"]);
-
+			Assert.AreEqual((long)400L, (long)counts["read"]);
+			Assert.AreEqual((long)400L, (long)counts["write"]);
 		}
-		[Test ()]
-		public void DeleteEndsWith() {
+
+		[TestCase]
+		public void UpdateEndsWith() {
 			Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.Get("blue"));
 			Qualifier qual2 = new Qualifier("name", Qualifier.FilterOperation.START_WITH, Value.Get("na"));
+			List<Bin> bins = new List<Bin>() {
+					new Bin("starting", "ends with e")
+				};
 			Statement stmt = new Statement();
 			stmt.Namespace = TestQueryEngine.NAMESPACE;
 			stmt.SetName = TestQueryEngine.SET_NAME;
-			IDictionary<String, long> counts = queryEngine.Delete(stmt, qual1, qual2);
+			IDictionary<String, long> counts = queryEngine.Update(stmt, bins, qual1, qual2);
 			//System.out.println(counts);
 			Assert.AreEqual((long)200L, (long)counts["read"]);
 			Assert.AreEqual((long)200L, (long)counts["write"]);
-		}
-		[Test ()]
-		public void DeleteWithFilter() {
-			Key key = new Key(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "first-name-1");
-			Bin firstNameBin = new Bin("first_name", "first-name-1");
-			Bin lastNameBin = new Bin("last_name", "last-name-1");
-			int age = 25;
-			Bin ageBin = new Bin("age", age);
-			this.client.Put(null, key, firstNameBin, lastNameBin, ageBin);
-
-			Qualifier qual1 = new Qualifier("last_name", Qualifier.FilterOperation.EQ, Value.Get("last-name-1"));
-			//DELETE FROM test.people WHERE last_name='last-name-1'
-			Statement stmt = new Statement();
-			stmt.Namespace = TestQueryEngine.NAMESPACE;
-			stmt.SetName = TestQueryEngine.SET_NAME;
-			IDictionary<String, long> counts = queryEngine.Delete(stmt, qual1);
-			Assert.AreEqual((long)1L, (long)counts["read"]);
-			Assert.AreEqual((long)1L, (long)counts["write"]);
-			Record record = this.client.Get(null, key);
-			Assert.IsNull(record);
 		}
 
 	}
