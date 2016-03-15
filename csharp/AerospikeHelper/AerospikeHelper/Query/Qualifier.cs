@@ -112,50 +112,48 @@ namespace Aerospike.Helper.Query
 			FilterOperation op = getOperation();
 			switch (op) {
 			case FilterOperation.EQ:
-				return String.Format("%s == %s", luaFieldString(Field),  value1);
+				return String.Format("{0} == {1}", luaFieldString(Field),  value1);
 			case FilterOperation.LIST_CONTAINS:
-				return String.Format("containsValue(%s, %s)", luaFieldString(Field),  value1);
+				return String.Format("containsValue({0}, {1})", luaFieldString(Field),  value1);
 			case FilterOperation.MAP_KEYS_CONTAINS:
-				return String.Format("containsKey(%s, %s)", luaFieldString(Field),  value1);
+				return String.Format("containsKey({0}, {1})", luaFieldString(Field),  value1);
 			case FilterOperation.MAP_VALUES_CONTAINS:
-				return String.Format("containsValue(%s, %s)", luaFieldString(Field),  value1);
+				return String.Format("containsValue({0}, {1})", luaFieldString(Field),  value1);
 			case FilterOperation.NOTEQ:
-				return String.Format("%s ~= %s", luaFieldString(Field), value1);
+				return String.Format("{0} ~= {1}", luaFieldString(Field), value1);
 			case FilterOperation.GT:
-				return String.Format("%s > %s", luaFieldString(Field), value1);
+				return String.Format("{0} > {1}", luaFieldString(Field), value1);
 			case FilterOperation.GTEQ:
-				return String.Format("%s >= %s", luaFieldString(Field), value1);
+				return String.Format("{0} >= {1}", luaFieldString(Field), value1);
 			case FilterOperation.LT:
-				return String.Format("%s < %s", luaFieldString(Field), value1);
+				return String.Format("{0} < {1}", luaFieldString(Field), value1);
 			case FilterOperation.LTEQ:
-				return String.Format("%s <= %s", luaFieldString(Field), value1);
+				return String.Format("{0} <= {1}", luaFieldString(Field), value1);
 			case FilterOperation.BETWEEN:
 				String value2 = luaValueString(Value2);
 				String fieldString = luaFieldString(Field); 
-				return String.Format("%s >= %s and %s <= %s  ", fieldString, value1, luaFieldString(Field), value2);
+				return String.Format("{0} >= {1} and {2} <= {3}  ", fieldString, value1, luaFieldString(Field), value2);
 			case FilterOperation.LIST_BETWEEN:
 				value2 = luaValueString(Value2);
-				return String.Format("rangeValue(%s, %s, %s)", luaFieldString(Field),  value1, value2);
+				return String.Format("rangeValue({0}, {1}, {2})", luaFieldString(Field),  value1, value2);
 			case FilterOperation.MAP_KEYS_BETWEEN:
 				value2 = luaValueString(Value2);
-				return String.Format("rangeKey(%s, %s, %s)", luaFieldString(Field),  value1, value2);
+				return String.Format("rangeKey({0}, {1}, {2})", luaFieldString(Field),  value1, value2);
 			case FilterOperation.MAP_VALUES_BETWEEN:
 				value2 = luaValueString(Value2);
-				return String.Format("rangeValue(%s, %s, %s)", luaFieldString(Field),  value1, value2);
+				return String.Format("rangeValue({0}, {1}, {2})", luaFieldString(Field),  value1, value2);
 			case FilterOperation.START_WITH:
-				return String.Format("string.sub(%s,1,string.len(%s))==%s", luaFieldString(Field), value1, value1);			
+				return String.Format("string.sub({0},1,string.len({1}))=={2}", luaFieldString(Field), value1, value1);			
 			case FilterOperation.ENDS_WITH:
-				return String.Format("%s=='' or string.sub(%s,-string.len(%s))==%s", 
+				return String.Format("{0}=='' or string.sub({1},-string.len({0}))=={0}", 
 					value1,
-					luaFieldString(Field),
-					value1,
-					value1);			
+					luaFieldString(Field));			
 			}
 			return "";
 		}
 
 		protected virtual String luaFieldString(String field){
-			return String.Format("rec['%s']", field);
+			return String.Format("rec['{0}']", field);
 		}
 
 		protected String luaValueString(Value value){
@@ -172,7 +170,7 @@ namespace Aerospike.Helper.Query
 			//			res = value.toString();
 			//			break;
 			case ParticleType.STRING:
-				res = String.Format("'%s'", value.ToString());
+				res = String.Format("'{0}'", value.ToString());
 				break;
 			default:
 				res = value.ToString();

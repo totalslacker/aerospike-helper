@@ -52,6 +52,8 @@ namespace Aerospike.Helper.Model
 				String binName = "";
 				if (values != null && values.TryGetValue("bin", out binName))
 					return 	binName;
+				else if (values != null && values.TryGetValue("bins", out binName))
+					return 	binName;
 				else
 					return null;
 			}

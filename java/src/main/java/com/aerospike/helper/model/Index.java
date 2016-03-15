@@ -80,7 +80,11 @@ public class Index {
 		return this.getName();
 	}
 	public String getBin() {
-		return 	values.get("bins");
+		if (values.containsKey("bin"))
+			return 	values.get("bin");
+		if (values.containsKey("bins"))
+			return values.get("bins");
+		return null;
 	}
 	public IndexType getType(){
 		String indexTypeString = values.get("type");

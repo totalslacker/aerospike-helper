@@ -21,7 +21,7 @@ namespace Aerospike.Helper.Tests
 
 		[TestCase]
 		public void allUsers() {
-			KeyRecordIterator it = queryEngine.Select(TestQueryEngine.NAMESPACE, "users", null);
+			KeyRecordEnumerator it = queryEngine.Select(TestQueryEngine.NAMESPACE, "users", null);
 			try {
 				while (it.MoveNext()){
 					KeyRecord rec = (KeyRecord)it.Current;
@@ -32,7 +32,7 @@ namespace Aerospike.Helper.Tests
 		}
 		[TestCase]
 		public void usersInterupted() {
-			KeyRecordIterator it = queryEngine.Select(TestQueryEngine.NAMESPACE, "users", null);
+			KeyRecordEnumerator it = queryEngine.Select(TestQueryEngine.NAMESPACE, "users", null);
 			try {
 				int counter = 0;
 				while (it.MoveNext()){
@@ -50,7 +50,7 @@ namespace Aerospike.Helper.Tests
 			Statement stmt = new Statement();
 			stmt.Namespace = TestQueryEngine.NAMESPACE ;
 			stmt.SetName = "users" ;
-			KeyRecordIterator it = queryEngine.Select(stmt, new Qualifier("region", Qualifier.FilterOperation.EQ, Value.Get("n")) );
+			KeyRecordEnumerator it = queryEngine.Select(stmt, new Qualifier("region", Qualifier.FilterOperation.EQ, Value.Get("n")) );
 			try {
 				while (it.MoveNext()){
 					KeyRecord rec = (KeyRecord)it.Current;

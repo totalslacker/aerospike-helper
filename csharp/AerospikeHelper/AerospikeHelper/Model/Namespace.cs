@@ -79,16 +79,20 @@ namespace Aerospike.Helper.Model
 			}
 		}
 
-		public Dictionary<String, Set> Sets ()
+		public Dictionary<String, Set>.ValueCollection Sets
 		{
-			if (sets == null)
-				sets = new Dictionary<String, Set>();
-			return sets;
+			get {
+				if (sets == null)
+					sets = new Dictionary<String, Set> ();
+				return sets.Values;
+			}
 		}
 
-		public String Name ()
+		public String Name 
 		{
-			return ToString ();
+			get {
+				return this.name;
+			}
 		}
 
 		public void Clear ()

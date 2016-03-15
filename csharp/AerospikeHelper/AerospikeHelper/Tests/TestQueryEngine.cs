@@ -6,7 +6,7 @@ namespace Aerospike.Helper.Query
 	{
 		public const int PORT = 3000;
 		public const String HOST = "127.0.0.1";
-		//	public const String HOST = "54.175.187.56";
+		//public const String HOST = "54.208.67.159";  //Amazon
 		public const String NAMESPACE = "test";
 		public const String SET_NAME = "selector";
 		public const int RECORD_COUNT = 1000;

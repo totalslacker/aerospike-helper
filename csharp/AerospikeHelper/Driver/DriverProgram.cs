@@ -1,36 +1,76 @@
 ﻿using System;
+using System.Collections.Generic;
 using NUnit.Framework;
-using Aerospike.Client;
+
 using Aerospike.Helper.Query;
+using Aerospike.Client;
 
-namespace Aerospike.Helper.Query
+namespace Driver
 {
-	[TestFixture ()]
-	public class SelectorTests : HelperTests
+	class DriverProgram
 	{
-		public SelectorTests () : base()
-		{
-			
-		}
-		[TestCase]
-		public void SelectOneWitKey() {
-			Statement stmt = new Statement();
-			stmt.Namespace = TestQueryEngine.NAMESPACE;
-			stmt.SetName = TestQueryEngine.SET_NAME;
-			KeyQualifier kq = new KeyQualifier(Value.Get("selector-test:3"));
-			KeyRecordEnumerator it = queryEngine.Select(stmt, kq);
-			int count = 0;
-			while (it.MoveNext()){
-				KeyRecord rec = (KeyRecord)it.Current;
-				count++;
-				//			System.out.println(rec);
-			}
-			it.Close();
-			//		System.out.println(count);
-			Assert.AreEqual(1, count);
+		AerospikeClient client;
+		QueryEngine queryEngine;
+
+		public DriverProgram(AerospikeClient client, QueryEngine queryEngine){
+			this.client = client;
+			this.queryEngine = queryEngine;
 		}
 
-		[TestCase]
+		public static void Main (string[] args)
+		{
+			Console.WriteLine ("Helper test app");
+			Console.WriteLine (Environment.CurrentDirectory);
+			AerospikeClient client = new AerospikeClient ("127.0.0.1", 3000);
+			QueryEngine qe = new QueryEngine (client);
+
+			DriverProgram dp = new DriverProgram (client, qe);
+			dp.CreateTestData ();
+			Console.WriteLine ("SelectAll();");
+			dp.SelectAll();
+
+			Console.WriteLine ("SelectOnIndex();");
+			//dp.SelectOnIndex ();
+
+			Console.WriteLine ("SelectOnIndexWithQualifiers();");
+			dp.SelectOnIndexWithQualifiers ();
+
+			Console.WriteLine ("SelectWithGeneration();");
+			dp.SelectWithGeneration ();
+
+			Console.WriteLine ("SelectWithQualifiersOnly();");
+			dp.SelectWithQualifiersOnly ();
+
+			Console.WriteLine ("SelectStartsWith();");
+			dp.SelectStartsWith ();
+
+			Console.WriteLine ("SelectEndsWith();");
+			dp.SelectEndsWith();
+		}
+		public void CreateTestData(){
+			int[] ages = new int[]{25,26,27,28,29};
+			String[] colours = new String[]{"blue","red","yellow","green","orange"};
+			String[] animals = new String[]{"cat","dog","mouse","snake","lion"};
+			int i = 0;
+			Console.WriteLine ("Creating Test Data");
+			Key key = new Key (TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "selector-test:" + 10);
+			if (!client.Exists (null, key)) {
+				for (int x = 1; x <= TestQueryEngine.RECORD_COUNT; x++) {
+					key = new Key (TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "selector-test:" + x);
+					Bin name = new Bin ("name", "name:" + x);
+					Bin age = new Bin ("age", ages [i]);
+					Bin colour = new Bin ("color", colours [i]);
+					Bin animal = new Bin ("animal", animals [i]);
+					client.Put (null, key, name, age, colour, animal);
+					i++;
+					if (i == 5)
+						i = 0;
+				}
+			}
+			Console.WriteLine ("Created Test Data");
+
+		}
+
 		public void SelectAll() {
 			KeyRecordEnumerator it = queryEngine.Select(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, null);
 			try {
@@ -42,10 +82,10 @@ namespace Aerospike.Helper.Query
 			}
 		}
 
-		[TestCase]
+		 
 		public void SelectOnIndex() {
-			IndexTask task = this.client.CreateIndex(null, TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "age_index", "age", IndexType.NUMERIC);
-			task.Wait();
+			this.client.CreateIndex(null, TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "age_index", "age", IndexType.NUMERIC);
+
 			Filter filter = Filter.Range("age", 28, 29);
 			KeyRecordEnumerator it = queryEngine.Select(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, filter);
 			try{
@@ -58,7 +98,7 @@ namespace Aerospike.Helper.Query
 				it.Close();
 			}
 		}
-		[TestCase]
+	 
 		public void SelectStartsWith() {
 			Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.ENDS_WITH, Value.Get("e"));
 			KeyRecordEnumerator it = queryEngine.Select(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, null, qual1);
@@ -72,7 +112,7 @@ namespace Aerospike.Helper.Query
 				it.Close();
 			}
 		}
-		[TestCase]
+		 
 		public void SelectEndsWith() {
 			Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.Get("blue"));
 			Qualifier qual2 = new Qualifier("name", Qualifier.FilterOperation.START_WITH, Value.Get("na"));
@@ -87,10 +127,10 @@ namespace Aerospike.Helper.Query
 				it.Close();
 			}
 		}
-		[TestCase]
+		 
 		public void SelectOnIndexWithQualifiers() {
-			IndexTask task = this.client.CreateIndex(null, TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "age_index_selector", "age", IndexType.NUMERIC);
-			task.Wait();
+			this.client.CreateIndex(null, TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "age_index_selector", "age", IndexType.NUMERIC);
+
 			Filter filter = Filter.Range("age", 25, 29);
 			Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.Get("blue"));
 			KeyRecordEnumerator it = queryEngine.Select(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, filter, qual1);
@@ -105,11 +145,10 @@ namespace Aerospike.Helper.Query
 				it.Close();
 			}
 		}
-		[TestCase]
+		 
 		public void SelectWithQualifiersOnly() {
-			IndexTask task = this.client.CreateIndex(null, TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "age_index", "age", IndexType.NUMERIC);
-			task.Wait();
 			queryEngine.refreshCluster();
+
 			Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.Get("green"));
 			Qualifier qual2 = new Qualifier("age", Qualifier.FilterOperation.BETWEEN, Value.Get(28), Value.Get(29));
 			KeyRecordEnumerator it = queryEngine.Select(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, null, qual1, qual2);
@@ -124,7 +163,7 @@ namespace Aerospike.Helper.Query
 				it.Close();
 			}
 		}
-		[TestCase]
+
 		public void SelectWithGeneration() {
 			queryEngine.refreshCluster();
 			Qualifier qual1 = new GenerationQualifier(Qualifier.FilterOperation.GTEQ, Value.Get(1));
@@ -138,6 +177,7 @@ namespace Aerospike.Helper.Query
 				it.Close();
 			}
 		}
+
 
 	}
 }

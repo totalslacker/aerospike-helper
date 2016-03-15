@@ -1,19 +1,20 @@
-﻿<Properties StartupItem="AerospikeHelper/Aerospike.Helper.csproj">
+﻿<Properties StartupItem="Driver/Driver.csproj">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="AerospikeHelper/Tests/ModelTests.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="AerospikeHelper/Query/KeyRecordIterator.cs">
     <Files>
-      <File FileName="AerospikeHelper/Query/QueryEngine.cs" Line="423" Column="3" />
-      <File FileName="AerospikeHelper/Model/Namespace.cs" Line="1" Column="1" />
-      <File FileName="../../../aerospike-client-csharp/AerospikeDemo/QueryAverage.cs" Line="1" Column="1" />
-      <File FileName="AerospikeHelper/Query/KeyRecordIterator.cs" Line="1" Column="1" />
-      <File FileName="AerospikeHelper/Model/Module.cs" Line="1" Column="1" />
-      <File FileName="AerospikeHelper/Utils.cs" Line="4" Column="17" />
-      <File FileName="AerospikeHelper/Tests/ModelTests.cs" Line="2" Column="7" />
-      <File FileName="AerospikeHelper/Tests/DeleterTests.cs" Line="12" Column="27" />
+      <File FileName="AerospikeHelper/Query/QueryEngine.cs" Line="189" Column="1" />
+      <File FileName="AerospikeHelper/Query/KeyRecordIterator.cs" Line="68" Column="1" />
+      <File FileName="Driver/DriverProgram.cs" Line="38" Column="17" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
-    <BreakpointStore />
+    <BreakpointStore>
+      <Breakpoint file="/Users/peter/git/aerospike/aerospike-helper/csharp/AerospikeHelper/AerospikeHelper/Tests/DeleterTests.cs" line="66" column="1" />
+      <Breakpoint file="/Users/peter/git/aerospike/aerospike-helper/csharp/AerospikeHelper/AerospikeHelper/Query/QueryEngine.cs" line="189" column="1" />
+      <Breakpoint file="/Users/peter/git/aerospike/aerospike-helper/csharp/AerospikeHelper/AerospikeHelper/Query/KeyRecordIterator.cs" line="98" column="1" />
+      <Breakpoint file="/Users/peter/git/aerospike/aerospike-helper/csharp/AerospikeHelper/AerospikeHelper/Query/KeyRecordIterator.cs" line="68" column="1" />
+      <Breakpoint file="/Users/peter/git/aerospike/aerospike-helper/csharp/AerospikeHelper/AerospikeHelper/Query/KeyRecordIterator.cs" line="63" column="1" />
+    </BreakpointStore>
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches />
 </Properties>

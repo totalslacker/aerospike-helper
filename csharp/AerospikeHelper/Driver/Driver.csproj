@@ -3,10 +3,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
-    <ProjectGuid>{B93E0ECF-2369-409A-8C94-02C0BC0AF2C3}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>Aerospike.Helper</RootNamespace>
-    <AssemblyName>AerospikeHelper</AssemblyName>
+    <ProjectGuid>{F88E8B32-152F-4C3F-9C4A-C0D26E37F002}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Driver</RootNamespace>
+    <AssemblyName>Driver</AssemblyName>
+    <StartupObject>Driver.DriverProgram</StartupObject>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
@@ -33,59 +34,23 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
-    <Reference Include="Es.Logging">
-      <HintPath>..\packages\Es.Logging.0.0.4\lib\net45\Es.Logging.dll</HintPath>
-    </Reference>
-    <Reference Include="log4net">
-      <HintPath>..\packages\log4net.2.0.5\lib\net45-full\log4net.dll</HintPath>
-    </Reference>
-    <Reference Include="Es.Logging.Log4">
-      <HintPath>..\packages\Es.Logging.Log4.0.0.4\lib\net45\Es.Logging.Log4.dll</HintPath>
-    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utils.cs" />
-    <Compile Include="Model\Function.cs" />
-    <Compile Include="Model\Index.cs" />
-    <Compile Include="Model\Module.cs" />
-    <Compile Include="Model\NameValuePair.cs" />
-    <Compile Include="Model\Namespace.cs" />
-    <Compile Include="Model\Set.cs" />
-    <Compile Include="Query\Qualifier.cs" />
-    <Compile Include="Collections\LargeList.cs" />
-    <Compile Include="Query\ExpiryQualifer.cs" />
-    <Compile Include="Query\QueryEngine.cs" />
-    <Compile Include="Query\KeyQualifier.cs" />
-    <Compile Include="Query\KeyRecordIterator.cs" />
-    <Compile Include="Query\GenerationQualifier.cs" />
-    <Compile Include="Tests\ModelTests.cs" />
-    <Compile Include="Tests\DeleterTests.cs" />
-    <Compile Include="Tests\HelperTests.cs" />
-    <Compile Include="Tests\InserterTests.cs" />
-    <Compile Include="Tests\SelectorTests.cs" />
-    <Compile Include="Tests\UpdaterTests.cs" />
-    <Compile Include="Tests\UsersTests.cs" />
-    <Compile Include="Tests\TestQueryEngine.cs" />
+    <Compile Include="DriverProgram.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <ItemGroup>
-    <Folder Include="Collections\" />
-    <Folder Include="Tests\" />
-    <Folder Include="udf\" />
-  </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="udf\as_utility_1_0.lua">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
+    <ProjectReference Include="..\AerospikeHelper\Aerospike.Helper.csproj">
+      <Project>{B93E0ECF-2369-409A-8C94-02C0BC0AF2C3}</Project>
+      <Name>Aerospike.Helper</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\..\aerospike-client-csharp\AerospikeClient\AerospikeClient.csproj">
       <Project>{21FEB257-1454-4A21-81D6-BDB6FE865E97}</Project>
       <Name>AerospikeClient</Name>

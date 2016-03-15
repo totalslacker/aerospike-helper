@@ -81,7 +81,12 @@ public class Module {
 			kvPut(kv, this.values);
 		}
 		try {
-			String code = values.get("recordContent");
+			String code = "";
+			// key name change 
+			if (values.containsKey("recordContent"))
+				code = values.get("recordContent");
+			else
+				code = values.get("content");
 			//code = code.substring(0, code.length()-2);
 			if (code != null)
 				setSource(new String(Base64.decode(code)));

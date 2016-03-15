@@ -6,7 +6,8 @@ using Aerospike.Helper.Model;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-
+using System.IO;
+using System.Reflection;
 
 namespace Aerospike.Helper.Query
 {
@@ -22,7 +23,7 @@ namespace Aerospike.Helper.Query
 		protected const String QUERY_MODULE = "as_utility_1_0";
 		//DO NOT use decimal places in the module name
 
-		protected const String AS_UTILITY_PATH = "lua";
+		protected const String AS_UTILITY_PATH = "udf";
 
 		protected static readonly ILog log = LogManager.GetLogger (typeof(QueryEngine));
 
@@ -32,7 +33,7 @@ namespace Aerospike.Helper.Query
 		public WritePolicy insertPolicy;
 		public InfoPolicy infoPolicy;
 
-		protected SortedDictionary<String, Module> moduleCache;
+		protected SortedDictionary<String, Aerospike.Helper.Model.Module> moduleCache;
 
 		protected SortedDictionary<String, Namespace> namespaceCache;
 
@@ -79,7 +80,7 @@ namespace Aerospike.Helper.Query
 		}
 
 		#region Select
-		public KeyRecordIterator Select(string ns, string set, Filter filter, IDictionary<String, String> sortMap, params Qualifier[] qualifiers){
+		public KeyRecordEnumerator Select(string ns, string set, Filter filter, IDictionary<String, String> sortMap, params Qualifier[] qualifiers){
 			Statement stmt = new Statement();
 			stmt.Namespace = ns;
 			stmt.SetName = set;
@@ -88,8 +89,8 @@ namespace Aerospike.Helper.Query
 			return Select(stmt, sortMap, qualifiers);	
 
 		}
-		public KeyRecordIterator Select(Statement stmt, IDictionary<String, String> sortMap, params Qualifier[] qualifiers){
-			KeyRecordIterator results = null;
+		public KeyRecordEnumerator Select(Statement stmt, IDictionary<String, String> sortMap, params Qualifier[] qualifiers){
+			KeyRecordEnumerator results = null;
 
 			if (qualifiers != null && qualifiers.Length > 0) {
 				IDictionary<String, Object> originArgs = new Dictionary<String, Object>();
@@ -100,15 +101,15 @@ namespace Aerospike.Helper.Query
 				originArgs["sortFuncStr"] = sortFuncStr;
 				stmt.SetAggregateFunction(QUERY_MODULE, "select_records", Value.Get(originArgs));
 				ResultSet resultSet = this.client.QueryAggregate(null, stmt);
-				results = new KeyRecordIterator(stmt.Namespace, resultSet);
+				results = new KeyRecordEnumerator(stmt.Namespace, resultSet);
 			} else {
 				RecordSet recordSet = this.client.Query(null, stmt);
-				results = new KeyRecordIterator(stmt.Namespace, recordSet);
+				results = new KeyRecordEnumerator(stmt.Namespace, recordSet);
 			} 
 			return results;
 		}
 
-		public KeyRecordIterator Select(String ns, String set, Filter filter, params Qualifier[] qualifiers){
+		public KeyRecordEnumerator Select(String ns, String set, Filter filter, params Qualifier[] qualifiers){
 			Statement stmt = new Statement();
 			stmt.Namespace = ns;
 			stmt.SetName = set;
@@ -126,17 +127,17 @@ namespace Aerospike.Helper.Query
 	 /// @param qualifiers
 	 /// @return
 	 ///
-		public KeyRecordIterator Select(Statement stmt, params Qualifier[] qualifiers){
+		public KeyRecordEnumerator Select(Statement stmt, params Qualifier[] qualifiers){
 			return Select(stmt, false, qualifiers);
 		}
-		public KeyRecordIterator Select(Statement stmt, bool metaOnly, params Qualifier[] qualifiers){
-			KeyRecordIterator results = null;
+		public KeyRecordEnumerator Select(Statement stmt, bool metaOnly, params Qualifier[] qualifiers){
+			KeyRecordEnumerator results = null;
 		/*
 		 * no filters
 		 */
 			if (qualifiers == null || qualifiers.Length == 0)  {
 				RecordSet recordSet = this.client.Query(null, stmt);
-				results = new KeyRecordIterator(stmt.Namespace, recordSet);
+				results = new KeyRecordEnumerator(stmt.Namespace, recordSet);
 				return results;
 			}
 		/*
@@ -152,17 +153,17 @@ namespace Aerospike.Helper.Query
 				else
 					record = this.client.Get(null, key, stmt.BinNames);
 				if (record == null){
-					results = new KeyRecordIterator(stmt.Namespace);
+					results = new KeyRecordEnumerator(stmt.Namespace);
 				} else {
 					KeyRecord keyRecord = new KeyRecord(key, record);
-					results = new KeyRecordIterator(stmt.Namespace, keyRecord);
+					results = new KeyRecordEnumerator(stmt.Namespace, keyRecord);
 				}
 				return results;
 			}
 		/*
 		 *  query with filters
 		 */
-			IDictionary<String, Object> originArgs = new Dictionary<String, Object>();
+			Dictionary<String, Object> originArgs = new Dictionary<String, Object>();
 			originArgs["includeAllFields"] = 1;
 
 			for (int i = 0; i < qualifiers.Length; i++){
@@ -179,27 +180,38 @@ namespace Aerospike.Helper.Query
 
 			String filterFuncStr = buildFilterFunction(qualifiers);
 			originArgs["filterFuncStr"] = filterFuncStr;
+			Value argValue = Value.Get (originArgs);
+			String fnName = "";
 
 			if (metaOnly)
-				stmt.SetAggregateFunction(QUERY_MODULE, "query_meta", Value.Get(originArgs));
+				fnName = "query_meta";
 			else
-				stmt.SetAggregateFunction(QUERY_MODULE, "select_records", Value.Get(originArgs));
+				fnName = "select_records";
+
+
+
+			stmt.SetAggregateFunction(Assembly.GetExecutingAssembly(), 
+				"Aerospike.Helper." + AS_UTILITY_PATH +"."+ QUERY_MODULE + ".lua",
+				QUERY_MODULE, 
+				fnName, 
+				argValue);
 
 			ResultSet resultSet = this.client.QueryAggregate(null, stmt);
-			results = new KeyRecordIterator(stmt.Namespace, resultSet);
+			results = new KeyRecordEnumerator(stmt.Namespace, resultSet);
 			return results;
 		}
 
 		protected bool isIndexedBin(Qualifier qualifier){
-			Index index = this.indexCache[qualifier.Field];
-			if (index == null)
-				return false;
 
 			Qualifier.FilterOperation operation = qualifier.getOperation();
 			if (operation != Qualifier.FilterOperation.EQ && operation != Qualifier.FilterOperation.BETWEEN)
 				return false;
 
-			return true;
+			if (this.indexCache.ContainsKey(qualifier.Field))
+				return true;	
+			else			
+				return false;
+			
 		}
 
 		#endregion
@@ -249,12 +261,12 @@ namespace Aerospike.Helper.Query
 				result["write"] = 1L;
 				return result;
 			} else {
-				KeyRecordIterator results = Select(stmt, true, qualifiers);
+				KeyRecordEnumerator results = Select(stmt, true, qualifiers);
 				return Update(results, bins);
 			}
 		}
 
-		private IDictionary<String, long> Update(KeyRecordIterator results, List<Bin> bins){
+		private IDictionary<String, long> Update(KeyRecordEnumerator results, List<Bin> bins){
 			long readCount = 0;
 			long updateCount = 0;
 			while (results.MoveNext()){
@@ -281,7 +293,7 @@ namespace Aerospike.Helper.Query
 		#region Delete
 		public IDictionary<String, long> Delete(Statement stmt, params Qualifier[] qualifiers){
 			if (qualifiers == null || qualifiers.Length == 0){
-				/*
+			/*
 			 * There are no qualifiers, so delete every record in the set
 			 * using Scan UDF delete
 			 */
@@ -293,17 +305,15 @@ namespace Aerospike.Helper.Query
 			if (qualifiers.Length == 1 && qualifiers[0] is KeyQualifier){
 				KeyQualifier keyQualifier = (KeyQualifier) qualifiers[0];
 				Key key = keyQualifier.MakeKey(stmt.Namespace, stmt.SetName);
+				//Console.WriteLine (key);
 				this.client.Delete(null, key);
 				Dictionary<String, long> map = new Dictionary<String, long>();
 				map["read"] = 1L;
 				map["write"] = 1L;
 				return map;
 			}
-			KeyRecordIterator results = Select(stmt, true, qualifiers);
-			return Delete(results);
-		}
+			KeyRecordEnumerator results = Select(stmt, true, qualifiers);
 
-		public IDictionary<String, long> Delete(KeyRecordIterator results){
 			long readCount = 0;
 			long updateCount = 0;
 			while (results.MoveNext()){
@@ -347,10 +357,12 @@ namespace Aerospike.Helper.Query
 		{
 			if (GetModule (QUERY_MODULE + ".lua") == null) { // register the as_utility udf module
 
+				var assembly = Assembly.GetExecutingAssembly();
 				RegisterTask task = this.client.Register (null,  
-					                    AS_UTILITY_PATH, 
-					                    QUERY_MODULE + ".lua", Language.LUA);
-				task.IsDone ();
+					assembly, 
+				"Aerospike.Helper." + AS_UTILITY_PATH +"."+ QUERY_MODULE + ".lua",
+					QUERY_MODULE + ".lua", Language.LUA);
+				task.Wait();
 			}
 		}
 
@@ -385,10 +397,11 @@ namespace Aerospike.Helper.Query
 						if (namespaceString.Trim ().Length > 0) {
 							String[] namespaceList = namespaceString.Split (';');
 							foreach (string nss in namespaceList) {
-								Namespace ns = this.namespaceCache [nss];
-								if (ns == null) {
+								Namespace ns = null;
+									
+								if (!this.namespaceCache.TryGetValue(nss, out ns)) {
 									ns = new Namespace (nss);
-									this.namespaceCache [nss] = ns;
+									this.namespaceCache.Add(nss, ns);
 								}
 								RefreshNamespaceData (node, ns);
 							}
@@ -432,6 +445,18 @@ namespace Aerospike.Helper.Query
 				return namespaceCache.Values;
 			}
 		}
+		public SortedDictionary<string, Index>.ValueCollection Indexes {
+
+			get {
+				return indexCache.Values;
+			}
+		}
+		public SortedDictionary<string, Aerospike.Helper.Model.Module>.ValueCollection Modules {
+
+			get {
+				return moduleCache.Values;
+			}
+		}
 
 
 		[MethodImpl (MethodImplOptions.Synchronized)]
@@ -447,12 +472,16 @@ namespace Aerospike.Helper.Query
 				if (node.Active) {
 					try {
 						String indexString = Info.Request (InfoPolicy, node, "sindex");
+						log.DebugFormat("Sindex string: {0}", indexString);
 						if (indexString.Length > 0) {
 							String[] indexList = indexString.Split (';');
 							foreach (String oneIndexString in indexList) {
-								Index index = new Index (oneIndexString);	
-								String indexBin = index.Bin;
-								this.indexCache [indexBin] = index;
+								log.DebugFormat("One index info string: {0}", oneIndexString);
+								if (oneIndexString != null && oneIndexString.Trim().Length > 0){
+									Index index = new Index (oneIndexString);	
+									String indexBin = index.Bin;
+									this.indexCache [indexBin] = index;
+								}
 							}
 						}
 						break;
@@ -473,17 +502,22 @@ namespace Aerospike.Helper.Query
 		public void RefreshModules ()
 		{
 			if (this.moduleCache == null)
-				this.moduleCache = new SortedDictionary<String, Module> ();
+				this.moduleCache = new SortedDictionary<String, Aerospike.Helper.Model.Module> ();
 			foreach (Node node in client.Nodes) {
 				if (node.Active) {
 					String packagesString = Info.Request (InfoPolicy, node, "udf-list");
 					if (packagesString.Length > 0) {
 						String[] packagesList = packagesString.Split (';');
 						foreach (String pkgString in packagesList) {
-							Module module = new Module (pkgString);
-							String udfString = Info.Request (InfoPolicy, node, "udf-get:filename=" + module.Name);
-							module.DetailInfo (udfString);//gen=qgmyp0d8hQNvJdnR42X3BXgUGPE=;type=LUA;recordContent=bG9jYWwgZnVuY3Rpb24gcHV0QmluKHIsbmFtZSx2YWx1ZSkKICAgIGlmIG5vdCBhZXJvc3Bpa2U6ZXhpc3RzKHIpIHRoZW4gYWVyb3NwaWtlOmNyZWF0ZShyKSBlbmQKICAgIHJbbmFtZV0gPSB2YWx1ZQogICAgYWVyb3NwaWtlOnVwZGF0ZShyKQplbmQKCi0tIFNldCBhIHBhcnRpY3VsYXIgYmluCmZ1bmN0aW9uIHdyaXRlQmluKHIsbmFtZSx2YWx1ZSkKICAgIHB1dEJpbihyLG5hbWUsdmFsdWUpCmVuZAoKLS0gR2V0IGEgcGFydGljdWxhciBiaW4KZnVuY3Rpb24gcmVhZEJpbihyLG5hbWUpCiAgICByZXR1cm4gcltuYW1lXQplbmQKCi0tIFJldHVybiBnZW5lcmF0aW9uIGNvdW50IG9mIHJlY29yZApmdW5jdGlvbiBnZXRHZW5lcmF0aW9uKHIpCiAgICByZXR1cm4gcmVjb3JkLmdlbihyKQplbmQKCi0tIFVwZGF0ZSByZWNvcmQgb25seSBpZiBnZW4gaGFzbid0IGNoYW5nZWQKZnVuY3Rpb24gd3JpdGVJZkdlbmVyYXRpb25Ob3RDaGFuZ2VkKHIsbmFtZSx2YWx1ZSxnZW4pCiAgICBpZiByZWNvcmQuZ2VuKHIpID09IGdlbiB0aGVuCiAgICAgICAgcltuYW1lXSA9IHZhbHVlCiAgICAgICAgYWVyb3NwaWtlOnVwZGF0ZShyKQogICAgZW5kCmVuZAoKLS0gU2V0IGEgcGFydGljdWxhciBiaW4gb25seSBpZiByZWNvcmQgZG9lcyBub3QgYWxyZWFkeSBleGlzdC4KZnVuY3Rpb24gd3JpdGVVbmlxdWUocixuYW1lLHZhbHVlKQogICAgaWYgbm90IGFlcm9zcGlrZTpleGlzdHMocikgdGhlbiAKICAgICAgICBhZXJvc3Bpa2U6Y3JlYXRlKHIpIAogICAgICAgIHJbbmFtZV0gPSB2YWx1ZQogICAgICAgIGFlcm9zcGlrZTp1cGRhdGUocikKICAgIGVuZAplbmQKCi0tIFZhbGlkYXRlIHZhbHVlIGJlZm9yZSB3cml0aW5nLgpmdW5jdGlvbiB3cml0ZVdpdGhWYWxpZGF0aW9uKHIsbmFtZSx2YWx1ZSkKICAgIGlmICh2YWx1ZSA+PSAxIGFuZCB2YWx1ZSA8PSAxMCkgdGhlbgogICAgICAgIHB1dEJpbihyLG5hbWUsdmFsdWUpCiAgICBlbHNlCiAgICAgICAgZXJyb3IoIjEwMDA6SW52YWxpZCB2YWx1ZSIpIAogICAgZW5kCmVuZAoKLS0gUmVjb3JkIGNvbnRhaW5zIHR3byBpbnRlZ2VyIGJpbnMsIG5hbWUxIGFuZCBuYW1lMi4KLS0gRm9yIG5hbWUxIGV2ZW4gaW50ZWdlcnMsIGFkZCB2YWx1ZSB0byBleGlzdGluZyBuYW1lMSBiaW4uCi0tIEZvciBuYW1lMSBpbnRlZ2VycyB3aXRoIGEgbXVsdGlwbGUgb2YgNSwgZGVsZXRlIG5hbWUyIGJpbi4KLS0gRm9yIG5hbWUxIGludGVnZXJzIHdpdGggYSBtdWx0aXBsZSBvZiA5LCBkZWxldGUgcmVjb3JkLiAKZnVuY3Rpb24gcHJvY2Vzc1JlY29yZChyLG5hbWUxLG5hbWUyLGFkZFZhbHVlKQogICAgbG9jYWwgdiA9IHJbbmFtZTFdCgogICAgaWYgKHYgJSA5ID09IDApIHRoZW4KICAgICAgICBhZXJvc3Bpa2U6cmVtb3ZlKHIpCiAgICAgICAgcmV0dXJuCiAgICBlbmQKCiAgICBpZiAodiAlIDUgPT0gMCkgdGhlbgogICAgICAgIHJbbmFtZTJdID0gbmlsCiAgICAgICAgYWVyb3NwaWtlOnVwZGF0ZShyKQogICAgICAgIHJldHVybgogICAgZW5kCgogICAgaWYgKHYgJSAyID09IDApIHRoZW4KICAgICAgICByW25hbWUxXSA9IHYgKyBhZGRWYWx1ZQogICAgICAgIGFlcm9zcGlrZTp1cGRhdGUocikKICAgIGVuZAplbmQKCi0tIFNldCBleHBpcmF0aW9uIG9mIHJlY29yZAotLSBmdW5jdGlvbiBleHBpcmUocix0dGwpCi0tICAgIGlmIHJlY29yZC50dGwocikgPT0gZ2VuIHRoZW4KLS0gICAgICAgIHJbbmFtZV0gPSB2YWx1ZQotLSAgICAgICAgYWVyb3NwaWtlOnVwZGF0ZShyKQotLSAgICBlbmQKLS0gZW5kCg==;
-							this.moduleCache [module.Name] = module;
+							if (pkgString != null && pkgString.Trim().Length > 0){
+								Aerospike.Helper.Model.Module module = new Aerospike.Helper.Model.Module (pkgString);
+								if (module != null) { 
+									String udfString = Info.Request (InfoPolicy, node, "udf-get:filename=" + module.Name);
+
+									module.DetailInfo (udfString);//gen=qgmyp0d8hQNvJdnR42X3BXgUGPE=;type=LUA;recordContent=bG9jYWwgZnVuY3Rpb24gcHV0QmluKHIsbmFtZSx2YWx1ZSkKICAgIGlmIG5vdCBhZXJvc3Bpa2U6ZXhpc3RzKHIpIHRoZW4gYWVyb3NwaWtlOmNyZWF0ZShyKSBlbmQKICAgIHJbbmFtZV0gPSB2YWx1ZQogICAgYWVyb3NwaWtlOnVwZGF0ZShyKQplbmQKCi0tIFNldCBhIHBhcnRpY3VsYXIgYmluCmZ1bmN0aW9uIHdyaXRlQmluKHIsbmFtZSx2YWx1ZSkKICAgIHB1dEJpbihyLG5hbWUsdmFsdWUpCmVuZAoKLS0gR2V0IGEgcGFydGljdWxhciBiaW4KZnVuY3Rpb24gcmVhZEJpbihyLG5hbWUpCiAgICByZXR1cm4gcltuYW1lXQplbmQKCi0tIFJldHVybiBnZW5lcmF0aW9uIGNvdW50IG9mIHJlY29yZApmdW5jdGlvbiBnZXRHZW5lcmF0aW9uKHIpCiAgICByZXR1cm4gcmVjb3JkLmdlbihyKQplbmQKCi0tIFVwZGF0ZSByZWNvcmQgb25seSBpZiBnZW4gaGFzbid0IGNoYW5nZWQKZnVuY3Rpb24gd3JpdGVJZkdlbmVyYXRpb25Ob3RDaGFuZ2VkKHIsbmFtZSx2YWx1ZSxnZW4pCiAgICBpZiByZWNvcmQuZ2VuKHIpID09IGdlbiB0aGVuCiAgICAgICAgcltuYW1lXSA9IHZhbHVlCiAgICAgICAgYWVyb3NwaWtlOnVwZGF0ZShyKQogICAgZW5kCmVuZAoKLS0gU2V0IGEgcGFydGljdWxhciBiaW4gb25seSBpZiByZWNvcmQgZG9lcyBub3QgYWxyZWFkeSBleGlzdC4KZnVuY3Rpb24gd3JpdGVVbmlxdWUocixuYW1lLHZhbHVlKQogICAgaWYgbm90IGFlcm9zcGlrZTpleGlzdHMocikgdGhlbiAKICAgICAgICBhZXJvc3Bpa2U6Y3JlYXRlKHIpIAogICAgICAgIHJbbmFtZV0gPSB2YWx1ZQogICAgICAgIGFlcm9zcGlrZTp1cGRhdGUocikKICAgIGVuZAplbmQKCi0tIFZhbGlkYXRlIHZhbHVlIGJlZm9yZSB3cml0aW5nLgpmdW5jdGlvbiB3cml0ZVdpdGhWYWxpZGF0aW9uKHIsbmFtZSx2YWx1ZSkKICAgIGlmICh2YWx1ZSA+PSAxIGFuZCB2YWx1ZSA8PSAxMCkgdGhlbgogICAgICAgIHB1dEJpbihyLG5hbWUsdmFsdWUpCiAgICBlbHNlCiAgICAgICAgZXJyb3IoIjEwMDA6SW52YWxpZCB2YWx1ZSIpIAogICAgZW5kCmVuZAoKLS0gUmVjb3JkIGNvbnRhaW5zIHR3byBpbnRlZ2VyIGJpbnMsIG5hbWUxIGFuZCBuYW1lMi4KLS0gRm9yIG5hbWUxIGV2ZW4gaW50ZWdlcnMsIGFkZCB2YWx1ZSB0byBleGlzdGluZyBuYW1lMSBiaW4uCi0tIEZvciBuYW1lMSBpbnRlZ2VycyB3aXRoIGEgbXVsdGlwbGUgb2YgNSwgZGVsZXRlIG5hbWUyIGJpbi4KLS0gRm9yIG5hbWUxIGludGVnZXJzIHdpdGggYSBtdWx0aXBsZSBvZiA5LCBkZWxldGUgcmVjb3JkLiAKZnVuY3Rpb24gcHJvY2Vzc1JlY29yZChyLG5hbWUxLG5hbWUyLGFkZFZhbHVlKQogICAgbG9jYWwgdiA9IHJbbmFtZTFdCgogICAgaWYgKHYgJSA5ID09IDApIHRoZW4KICAgICAgICBhZXJvc3Bpa2U6cmVtb3ZlKHIpCiAgICAgICAgcmV0dXJuCiAgICBlbmQKCiAgICBpZiAodiAlIDUgPT0gMCkgdGhlbgogICAgICAgIHJbbmFtZTJdID0gbmlsCiAgICAgICAgYWVyb3NwaWtlOnVwZGF0ZShyKQogICAgICAgIHJldHVybgogICAgZW5kCgogICAgaWYgKHYgJSAyID09IDApIHRoZW4KICAgICAgICByW25hbWUxXSA9IHYgKyBhZGRWYWx1ZQogICAgICAgIGFlcm9zcGlrZTp1cGRhdGUocikKICAgIGVuZAplbmQKCi0tIFNldCBleHBpcmF0aW9uIG9mIHJlY29yZAotLSBmdW5jdGlvbiBleHBpcmUocix0dGwpCi0tICAgIGlmIHJlY29yZC50dGwocikgPT0gZ2VuIHRoZW4KLS0gICAgICAgIHJbbmFtZV0gPSB2YWx1ZQotLSAgICAgICAgYWVyb3NwaWtlOnVwZGF0ZShyKQotLSAgICBlbmQKLS0gZW5kCg==;
+									this.moduleCache [module.Name] = module;
+								}
+							}
 						}
 					}
 					break;
@@ -492,9 +526,13 @@ namespace Aerospike.Helper.Query
 		}
 
 		[MethodImpl (MethodImplOptions.Synchronized)]
-		public Module GetModule (String moduleName)
+		public Aerospike.Helper.Model.Module GetModule (String moduleName)
 		{
-			return this.moduleCache [moduleName];
+			if (this.moduleCache.ContainsKey(moduleName)){
+				return this.moduleCache [moduleName];
+			} else {
+				return null;
+			}
 		}
 
 
