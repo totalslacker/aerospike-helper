@@ -70,6 +70,7 @@
     <Compile Include="Tests\UpdaterTests.cs" />
     <Compile Include="Tests\UsersTests.cs" />
     <Compile Include="Tests\TestQueryEngine.cs" />
+    <Compile Include="Collections\NotImplementedException.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

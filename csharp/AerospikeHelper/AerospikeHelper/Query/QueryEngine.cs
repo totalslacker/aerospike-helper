@@ -6,7 +6,6 @@ using Aerospike.Helper.Model;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using System.IO;
 using System.Reflection;
 
 namespace Aerospike.Helper.Query
@@ -333,7 +332,7 @@ namespace Aerospike.Helper.Query
 		}
 
 		#endregion
-
+		#region private
 		private String buildFilterFunction (Qualifier[] qualifiers)
 		{
 			int count = 0;
@@ -365,7 +364,7 @@ namespace Aerospike.Helper.Query
 				task.Wait();
 			}
 		}
-
+		#endregion
 		public InfoPolicy InfoPolicy {
 			get {
 				

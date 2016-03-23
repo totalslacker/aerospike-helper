@@ -5,6 +5,11 @@ using Aerospike.Client;
 
 namespace Aerospike.Helper.Collections
 {
+	/// <summary>
+	/// Create and manage a list within related records.
+	/// This class is a replacement for the LargeList LDT
+	/// </summary>
+
 	public sealed class LargeList
 	{
 
@@ -16,6 +21,13 @@ namespace Aerospike.Helper.Collections
 		private readonly Value binName;
 		private readonly String binNameString;
 
+		/// <summary>
+		/// Initialize large list operator.
+		/// </summary>
+		/// <param name="client">client</param>
+		/// <param name="policy">generic configuration parameters, pass in null for defaults</param>
+		/// <param name="key">unique record identifier</param>
+		/// <param name="binName">bin name</param>
 		public LargeList(AerospikeClient client, WritePolicy policy, Key key, string binName)
 		{
 			this.client = client;
@@ -69,6 +81,12 @@ namespace Aerospike.Helper.Collections
 				return new List<byte[]> ();
 			return digestList;
 		}
+		/// <summary>
+		/// Add value to list.  Fail if value's key exists and list is configured for unique keys.
+		/// If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
+		/// If large list does not exist, create it.
+		/// </summary>
+		/// <param name="value">value to add</param>
 
 		public void Add(Value value)
 		{
@@ -81,12 +99,24 @@ namespace Aerospike.Helper.Collections
 			client.Operate(this.policy, this.key, ListOperation.Append(this.binNameString, Value.Get(subKey.digest)));
 
 		}
+		/// <summary>
+		/// Add values to list.  Fail if a value's key exists and list is configured for unique keys.
+		/// If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
+		/// If large list does not exist, create it.
+		/// </summary>
+		/// <param name="values">values to add</param>
 		public void Add(List<Value> items)
 		{
 			foreach(Value Value in items){
 				this.Add(Value);
 			}
 		}
+		/// <summary>
+		/// Add values to list.  Fail if a value's key exists and list is configured for unique keys.
+		/// If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
+		/// If large list does not exist, create it.
+		/// </summary>
+		/// <param name="values">values to add</param>
 
 		public void Add(params Value[] items)
 		{
@@ -94,6 +124,13 @@ namespace Aerospike.Helper.Collections
 				this.Add(Value);
 			}
 		}
+
+		/// <summary>
+		/// Update value in list if key exists.  Add value to list if key does not exist.
+		/// If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
+		/// If large list does not exist, create it.
+		/// </summary>
+		/// <param name="value">value to update</param>
 		public void Update(Value value)
 		{
 			
@@ -104,13 +141,26 @@ namespace Aerospike.Helper.Collections
 				client.Put (this.policy, subKey, new Bin (ListElementBinName, value));
 			}
 		}
+
+		/// <summary>
+		/// Update/Add each value in array depending if key exists or not.
+		/// If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
+		/// If large list does not exist, create it.
+		/// </summary>
+		/// <param name="values">values to update</param>
 		public void Update(params Value[] values)
 		{
 			foreach(Value Value in values){
 				this.Update(Value);
 			}
 		}
-
+			
+		/// <summary>
+		/// Update/Add each value in values list depending if key exists or not.
+		/// If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
+		/// If large list does not exist, create it.
+		/// </summary>
+		/// <param name="values">values to update</param>
 		public void Update(IList values)
 		{
 			foreach(Value Value in values){
@@ -118,7 +168,11 @@ namespace Aerospike.Helper.Collections
 			}
 
 		}
-
+			
+		/// <summary>
+		/// Delete value from list.
+		/// </summary>
+		/// <param name="value">value to delete</param>
 		public void Remove(Value value)
 		{
 			Key subKey = MakeSubKey (value);
@@ -129,19 +183,15 @@ namespace Aerospike.Helper.Collections
 
 		}
 
+		/// <summary>
+		/// Delete values from list.
+		/// </summary>
+		/// <param name="values">values to delete</param>
 		public void Remove(IList<Value> values)
 		{
 			Key[] keys = MakeSubKeys (values);
 			IList digestList = GetDigestList ();
 
-//			int startIndex = digestList.IndexOf (subKey.digest);
-//			int count = values.Count;
-//			foreach (Key key in keys){
-//				
-//				client.Delete (this.policy, key);
-//			}
-//			client.Operate(this.policy, this.key, ListOperation.Remove(this.binNameString, startIndex, count));
-		
 			foreach (Key key in keys){
 
 				client.Delete (this.policy, key);
@@ -153,6 +203,11 @@ namespace Aerospike.Helper.Collections
 			
 		}
 
+		/// <summary>
+		/// Delete values from list between range.  Return count of entries removed.
+		/// </summary>
+		/// <param name="begin">low value of the range (inclusive)</param>
+		/// <param name="end">high value of the range (inclusive)</param>
 		public int Remove(Value begin, Value end)
 		{
 			IList digestList = GetDigestList ();
@@ -168,6 +223,11 @@ namespace Aerospike.Helper.Collections
 			client.Operate(this.policy, this.key, ListOperation.RemoveRange(this.binNameString, start, count));
 			return count;
 		}
+
+		/// <summary>
+		/// Does key value exist?
+		/// </summary>
+		/// <param name="keyValue">key value to lookup</param>
 		public bool Exists(Value keyValue)
 		{
 			Key subKey = MakeSubKey (keyValue);
@@ -175,6 +235,10 @@ namespace Aerospike.Helper.Collections
 
 		}
 
+		/// <summary>
+		/// Do key values exist?  Return list of results in one batch call.
+		/// </summary>
+		/// <param name="keyValues">key values to lookup</param>
 		public IList<bool> Exists (IList keyValues)
 		{
 			IList<bool> target = new List<bool> ();
@@ -185,6 +249,10 @@ namespace Aerospike.Helper.Collections
 
 		}
 
+		/// <summary>
+		/// Select values from list.
+		/// </summary>
+		/// <param name="value">value to select</param>
 		public IList Find(Value value)
 		{
 			Key subKey = MakeSubKey (value);
@@ -210,6 +278,12 @@ namespace Aerospike.Helper.Collections
 			return results;
 		}
 
+		/// <summary>
+		/// Select values from the begin key up to a maximum count.
+		/// Supported by server versions >= 3.5.8.
+		/// </summary>
+		/// <param name="begin">start value (inclusive)</param>
+		/// <param name="count">maximum number of values to return</param>
 		public IList FindFrom (Value begin, int count)
 		{
 			IList digestList = GetDigestList ();
@@ -218,12 +292,28 @@ namespace Aerospike.Helper.Collections
 			int stop = start + count;
 			return get (digestList, start, stop);
 		}
-//
-//		public IList FindFrom(Value begin, int count, string filterModule, string filterName, params Value[] filterArgs)
-//		{
-//			return (IList)client.Execute(policy, key, PackageName, "find_from", binName, begin, Value.Get(count), Value.Get(filterModule), Value.Get(filterName), Value.Get(filterArgs));
-//		}
 
+		/// <summary>
+		/// Select values from the begin key up to a maximum count after applying Lua filter.
+		/// 
+		/// THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+		/// 
+		/// </summary>
+		/// <param name="begin">start value (inclusive)</param>
+		/// <param name="count">maximum number of values to return after applying Lua filter</param>
+		/// <param name="filterModule">Lua module name which contains filter function</param>
+		/// <param name="filterName">Lua function name which applies filter to returned list</param>
+		/// <param name="filterArgs">arguments to Lua function name</param>
+		public IList FindFrom(Value begin, int count, string filterModule, string filterName, params Value[] filterArgs)
+		{
+			throw new NotImplementedException ();
+		}
+
+		/// <summary>
+		/// Select range of values from list.
+		/// </summary>
+		/// <param name="begin">begin value inclusive</param>
+		/// <param name="end">end value inclusive</param>
 		public IList Range(Value begin, Value end)
 		{
 			IList digestList = GetDigestList ();
@@ -234,21 +324,56 @@ namespace Aerospike.Helper.Collections
 			return get (digestList, start, stop);
 		}
 
-//		public IList Range(Value begin, Value end, int count)
-//		{
-//			return (IList)client.Execute(policy, key, PackageName, "find_range", binName, begin, end, Value.Get(count));
-//		}
-//
-//		public IList Range(Value begin, Value end, string filterModule, string filterName, params Value[] filterArgs)
-//		{
-//			return (IList)client.Execute(policy, key, PackageName, "range", binName, begin, end, Value.Get(filterModule), Value.Get(filterModule), Value.Get(filterArgs));
-//		}
-//
-//		public IList Range(Value begin, Value end, int count, string filterModule, string filterName, params Value[] filterArgs)
-//		{
-//			return (IList)client.Execute(policy, key, PackageName, "find_range", binName, begin, end, Value.Get(count), Value.Get(filterModule), Value.Get(filterName), Value.Get(filterArgs));
-//		}
+		/// <summary>
+		/// Select range of values from list.
+		/// 
+		/// THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+		/// 
+		/// </summary>
+		/// <param name="begin">low value of the range (inclusive)</param>
+		/// <param name="end">high value of the range (inclusive)</param>
+		/// <param name="count">maximum number of values to return, pass in zero to obtain all values within range</param>
+		public IList Range(Value begin, Value end, int count)
+		{
+			throw new NotImplementedException ();
+		}
 
+		/// <summary>
+		/// Select range of values from the large list up to a maximum count after applying lua filter.
+		/// 
+		/// THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+		/// 
+		/// </summary>
+		/// <param name="begin">low value of the range (inclusive)</param>
+		/// <param name="end">high value of the range (inclusive)</param>
+		/// <param name="count">maximum number of values to return after applying lua filter. Pass in zero to obtain all values within range.</param>
+		/// <param name="filterModule">Lua module name which contains filter function</param>
+		/// <param name="filterName">Lua function name which applies filter to returned list</param>
+		/// <param name="filterArgs">arguments to Lua function name</param>
+		public IList Range(Value begin, Value end, string filterModule, string filterName, params Value[] filterArgs)
+		{
+			throw new NotImplementedException ();
+		}
+
+		/// <summary>
+		/// Select range of values from the large list, then apply a Lua filter.
+		/// 
+		/// THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+		/// 
+		/// </summary>
+		/// <param name="begin">low value of the range (inclusive)</param>
+		/// <param name="end">high value of the range (inclusive)</param>
+		/// <param name="filterModule">Lua module name which contains filter function</param>
+		/// <param name="filterName">Lua function name which applies filter to returned list</param>
+		/// <param name="filterArgs">arguments to Lua function name</param>
+		public IList Range(Value begin, Value end, int count, string filterModule, string filterName, params Value[] filterArgs)
+		{
+			throw new NotImplementedException ();
+		}
+
+		/// <summary>
+		/// Return all objects in the list.
+		/// </summary>
 		public IList Scan()
 		{
 			
@@ -266,11 +391,23 @@ namespace Aerospike.Helper.Collections
 			return null;
 		}
 
-//		public IList Filter(string filterModule, string filterName, params Value[] filterArgs)
-//		{
-//			return (IList)client.Execute(policy, key, PackageName, "filter", binName, Value.AsNull, Value.Get(filterModule), Value.Get(filterName), Value.Get(filterArgs));
-//		}
+		/// <summary>
+		/// Select values from list and apply specified Lua filter.
+		/// 
+		/// THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+		/// 
+		/// </summary>
+		/// <param name="filterModule">Lua module name which contains filter function</param>
+		/// <param name="filterName">Lua function name which applies filter to returned list</param>
+		/// <param name="filterArgs">arguments to Lua function name</param>
+		public IList Filter(string filterModule, string filterName, params Value[] filterArgs)
+		{
+			throw new NotImplementedException ();
+		}
 
+		/// <summary>
+		/// Delete bin containing the list.
+		/// </summary>
 		public void Destroy ()
 		{
 			IList digestList = GetDigestList ();
@@ -285,20 +422,36 @@ namespace Aerospike.Helper.Collections
 
 		}
 
+		/// <summary>
+		/// Return size of list.
+		/// </summary>
 		public int Size()
 		{
 			Record record = client.Operate(this.policy, this.key, ListOperation.Size(this.binNameString));
 			return record.GetInt ("Count");
 		}
 
+		/// <summary>
+		/// Return map of list configuration parameters.
+		/// 
+		/// THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+		/// 
+		/// </summary>
 		public IDictionary GetConfig()
 		{
-			return null;  // No config because its NotSupportedException AsyncNode LDT
+			throw new NotImplementedException ();
 		}
 
+		/// <summary>
+		/// Set LDT page size. 
+		/// 
+		/// THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+		/// 
+		/// </summary>
+		/// <param name="pageSize">page size in bytes</param>
 		public void SetPageSize(int pageSize)
 		{
-			// do nothing
+			throw new NotImplementedException ();
 		}
 
 	}
