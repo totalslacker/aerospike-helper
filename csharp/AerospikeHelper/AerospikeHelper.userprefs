@@ -1,8 +1,13 @@
 ﻿<Properties StartupItem="Driver/Driver.csproj">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="AerospikeHelper/Collections/LargeList.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="AerospikeHelper/Tests/HelperTests.cs">
     <Files>
       <File FileName="AerospikeHelper/Collections/LargeList.cs" Line="195" Column="1" />
+      <File FileName="AerospikeHelper/Tests/HelperTests.cs" Line="1" Column="1" />
+      <File FileName="AerospikeHelper/Tests/UsersTests.cs" Line="1" Column="1" />
+      <File FileName="AerospikeHelper/Tests/UpdaterTests.cs" Line="1" Column="1" />
+      <File FileName="AerospikeHelper/Tests/TestQueryEngine.cs" Line="1" Column="1" />
+      <File FileName="AerospikeHelper/Tests/SelectorTests.cs" Line="1" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
