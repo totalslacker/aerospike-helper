@@ -57,6 +57,7 @@
     <Compile Include="Model\Set.cs" />
     <Compile Include="Collections\LargeList.cs" />
     <Compile Include="Collections\NotImplementedException.cs" />
+    <Compile Include="Tests\CollectionsLargeList.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
