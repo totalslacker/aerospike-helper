@@ -8,8 +8,3 @@ A customer holds an account with a strockbroking firm. The account can have zero
 
 ![One to many](OneToMany.png)
 
-##API
-
-
-
-##Example
