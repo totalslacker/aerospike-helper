@@ -96,8 +96,8 @@ namespace Aerospike.Helper.Collections
 			client.Put (this.policy, subKey, new Bin (ListElementBinName, value));
 
 			// add the digest of the subKey to the CDT List in the Customer record
-			client.Operate(this.policy, this.key, ListOperation.Append(this.binNameString, Value.Get(subKey.digest)));
-
+			Value digest = Value.Get(subKey.digest);
+			client.Operate(this.policy, this.key, ListOperation.Append(this.binNameString, digest));
 		}
 		/// <summary>
 		/// Add values to list.  Fail if a value's key exists and list is configured for unique keys.

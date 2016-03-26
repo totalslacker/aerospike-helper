@@ -42,8 +42,17 @@
     <Reference Include="Es.Logging.Log4">
       <HintPath>..\packages\Es.Logging.Log4.0.0.4\lib\net45\Es.Logging.Log4.dll</HintPath>
     </Reference>
+    <Reference Include="AerospikeClient">
+      <HintPath>..\packages\Aerospike.Client.3.2.1\lib\net40\AerospikeClient.dll</HintPath>
+    </Reference>
+    <Reference Include="Neo.Lua">
+      <HintPath>..\packages\NeoLua.1.2.5\lib\net45\Neo.Lua.dll</HintPath>
+    </Reference>
+    <Reference Include="Neo.Lua.Desktop">
+      <HintPath>..\packages\NeoLua.1.2.5\lib\net45\Neo.Lua.Desktop.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework">
-      <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
+      <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -72,11 +81,5 @@
     <EmbeddedResource Include="udf\as_utility_1_0.lua">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\aerospike-client-csharp\AerospikeClient\AerospikeClient.csproj">
-      <Project>{21FEB257-1454-4A21-81D6-BDB6FE865E97}</Project>
-      <Name>AerospikeClient</Name>
-    </ProjectReference>
   </ItemGroup>
 </Project>

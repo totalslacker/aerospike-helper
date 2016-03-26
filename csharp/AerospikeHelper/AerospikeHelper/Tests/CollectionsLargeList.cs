@@ -1,25 +1,88 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using NUnit.Framework;
+using System.IO;
 
-namespace Aerospike.Helper
+using Aerospike.Client;
+
+namespace Aerospike.Helper.Collections
 {
+	[TestFixture]
 	public class CollectionsLargeList
 	{
+		public const String HOST = "127.0.0.1";
+		public const int PORT = 3000;
+		public const int TIMEOUT = 1000;
+		public const int EXPIRY = 1800;
+		public const String NS = "test";
+		public const String SET = "CollectionsLargeList";
+		public const String LIST_BIN = "ListBin";
+
+		private AerospikeClient client;
+		private Exception caughtException;
+
 		public CollectionsLargeList ()
 		{
 		}
+
+		[SetUp]
+		public virtual void SetUp() {
+			try
+			{
+				Console.WriteLine("Creating AerospikeClient");
+				ClientPolicy clientPolicy = new ClientPolicy();
+				clientPolicy.timeout = TIMEOUT;
+				client = new AerospikeClient(clientPolicy, HOST, PORT);
+				client.writePolicyDefault.expiration = EXPIRY;
+				client.writePolicyDefault.recordExistsAction = RecordExistsAction.REPLACE;
+
+			} catch (Exception ex)
+			{
+				caughtException = ex; 
+				Console.WriteLine(string.Format("TestFixtureSetUp failed in {0} - {1} {2}", this.GetType(), caughtException.GetType(), caughtException.Message));
+				Console.WriteLine (caughtException.StackTrace);
+			}
+		}
+
+		[TearDown]
+		public virtual void TearDown() {
+			Console.WriteLine("Closing AerospikeClient");
+			client.Close();
+			if (caughtException != null)
+			{
+				Console.WriteLine(string.Format("TestFixtureSetUp failed in {0} - {1} {2}", this.GetType(), caughtException.GetType(), caughtException.Message));
+			} 
+		}
+
+		[TestCase]
+		public void CDTListOperations(){
+			Key key = new Key (NS, SET, "CDT-list-test-key");
+			Record record = client.Operate(null, key, ListOperation.Clear("integer-list"));
+			IList inputList = new List<Value>();
+			inputList.Add(Value.Get(55));
+			inputList.Add(Value.Get(77));
+			for (int x = 0; x < 100; x++) {
+				client.Operate(null, key, ListOperation.Insert("integer-list", 0, Value.Get(x)));
+			}
+			record = client.Operate(null, key, ListOperation.Size("integer-list"));
+			//record = client.Operate(null, key, ListOperation.AppendItems("integer-list", inputList));
+		}
+
 		/// <summary>
 		/// Simple examples of large list functionality.
 		/// </summary>
-		private void RunSimpleExample(AerospikeClient client, Arguments args)
+		[TestCase]
+		public void RunSimpleExample()
 		{
-			Key key = new Key(args.ns, args.set, "setkey");
-			string binName = args.GetBinName("ListBin");
+			Key key = new Key(NS, SET, "setkey");
+			string binName = LIST_BIN;
 
 			// Delete record if it already exists.
-			client.Delete(args.writePolicy, key);
+			client.Delete(null, key);
 
 			// Initialize large set operator.
-			Aerospike.Client.LargeList llist = client.GetLargeList(args.writePolicy, key, binName);
+			Aerospike.Helper.Collections.LargeList llist = new Aerospike.Helper.Collections.LargeList(client, null, key, binName);
 			string orig1 = "llistValue1";
 			string orig2 = "llistValue2";
 			string orig3 = "llistValue3";
@@ -33,30 +96,25 @@ namespace Aerospike.Helper
 
 			foreach (DictionaryEntry entry in map)
 			{
-				console.Info(entry.Key.ToString() + ',' + entry.Value);
+				Console.WriteLine(entry.Key.ToString() + ',' + entry.Value);
 			}
 
 			IList rangeList = llist.Range(Value.Get(orig2), Value.Get(orig3));
 
-			if (rangeList == null)
-			{
-				throw new Exception("Range returned null.");
-			}
+			Assert.IsNotNull (rangeList);
+		
+			Assert.AreEqual (rangeList.Count, 2);
 
-			if (rangeList.Count != 2)
-			{
-				throw new Exception("Range Size mismatch. Expected 2 Received " + rangeList.Count);
-			}
 			string v2 = (string) rangeList[0];
 			string v3 = (string) rangeList[1];
 
 			if (v2.Equals(orig2) && v3.Equals(orig3))
 			{
-				console.Info("Range Query matched: v2=" + orig2 + " v3=" + orig3);
+				Console.WriteLine("Range Query matched: v2=" + orig2 + " v3=" + orig3);
 			}
 			else
 			{
-				throw new Exception("Range Content mismatch. Expected (" + orig2 + ":" + orig3 +
+				Assert.Fail("Range Content mismatch. Expected (" + orig2 + ":" + orig3 +
 					") Received (" + v2 + ":" + v3 + ")");
 			}
 
@@ -75,35 +133,39 @@ namespace Aerospike.Helper
 
 			if (listReceived == null)
 			{
-				console.Error("Data mismatch: Expected " + expected + " Received null");
-				return;
+				Console.WriteLine("Data mismatch: Expected " + expected + " Received null");
+				Assert.Fail();
 			}
 
 			string stringReceived = (string) listReceived[0];
 
 			if (stringReceived != null && stringReceived.Equals(expected))
 			{
-				console.Info("Data matched: namespace=" + key.ns + " set=" + key.setName + " key=" + key.userKey +
+				Console.WriteLine("Data matched: namespace=" + key.ns + " set=" + key.setName + " key=" + key.userKey +
 					" value=" + stringReceived);
 			}
 			else
 			{
-				console.Error("Data mismatch: Expected " + expected + " Received " + stringReceived);
+				Console.WriteLine("Data mismatch: Expected " + expected + " Received " + stringReceived);
+				Assert.Fail();
 			}
 		}
 
 		/// <summary>
 		/// Use distinct sub-bins for row in largelist bin. 
 		/// </summary>
-		private void RunWithDistinctBins(AerospikeClient client, Arguments args)
+		[TestCase]
+		public void RunWithDistinctBins()
 		{
-			Key key = new Key(args.ns, args.set, "accountId");
+			Key key = new Key(NS, SET, "accountId");
 
 			// Delete record if it already exists.
-			client.Delete(args.writePolicy, key);	
+			client.Delete(null, key);	
 
 			// Initialize large list operator.
-			Aerospike.Client.LargeList list = client.GetLargeList(args.writePolicy, key, "trades");
+			Aerospike.Helper.Collections.LargeList list = new Aerospike.Helper.Collections.LargeList(client, null, key, "trades");
+
+			list.Size ();
 
 			// Write trades
 			Dictionary<string,Value> dict = new Dictionary<string,Value>();
@@ -132,84 +194,68 @@ namespace Aerospike.Helper
 			// Verify list size
 			int size = list.Size();
 
-			if (size != 3)
-			{
-				throw new Exception("List size mismatch. Expected 3 Received " + size);
-			}
+			Assert.AreEqual (size, 3);
 
 			// Filter on range of timestamps
 			DateTime begin = new DateTime(2014, 6, 26);
 			DateTime end = new DateTime(2014, 6, 28);
 			IList results = list.Range(Value.Get(begin.Ticks), Value.Get(end.Ticks));
 
-			if (results.Count != 2)
-			{
-				throw new Exception("Query results size mismatch. Expected 2 Received " + results.Count);
-			}
+			Assert.AreEqual (results.Count, 2);
 
 			// Verify data.
 			ValidateWithDistinctBins(results, 0, timestamp2, "GE", 500, 26.36);
 			ValidateWithDistinctBins(results, 1, timestamp3, "AAPL", 75, 91.85);
 
-			console.Info("Data matched.");
+			Console.WriteLine("Data matched.");
 
-			console.Info("Run large list scan.");
+			Console.WriteLine("Run large list scan.");
 			IList rows = list.Scan();
 			foreach (IDictionary row in rows)
 			{
 				foreach (DictionaryEntry entry in row)
 				{
-					//console.Info(entry.Key.ToString());
-					//console.Info(entry.Value.ToString());
+					//Console.WriteLine(entry.Key.ToString());
+					//Console.WriteLine(entry.Value.ToString());
 				}
 			}
-			console.Info("Large list scan complete.");
+			Console.WriteLine("Large list scan complete.");
 		}
 
-		private void ValidateWithDistinctBins(IList list, int index, DateTime expectedTime, string expectedTicker, int expectedQty, double expectedPrice)
+
+		public void ValidateWithDistinctBins(IList list, int index, DateTime expectedTime, string expectedTicker, int expectedQty, double expectedPrice)
 		{
 			IDictionary dict = (IDictionary)list[index];
 			DateTime receivedTime = new DateTime((long)dict["key"]);
 
-			if (expectedTime != receivedTime)
-			{
-				throw new Exception("Time mismatch: Expected " + expectedTime + ". Received " + receivedTime);
-			}
+			Assert.AreEqual (expectedTime, receivedTime);
 
 			string receivedTicker = (string)dict["ticker"];
 
-			if (expectedTicker != receivedTicker)
-			{
-				throw new Exception("Ticker mismatch: Expected " + expectedTicker + ". Received " + receivedTicker);
-			}
+			Assert.AreEqual (expectedTicker, receivedTicker);
 
 			long receivedQty = (long)dict["qty"];
 
-			if (expectedQty != receivedQty)
-			{
-				throw new Exception("Quantity mismatch: Expected " + expectedQty + ". Received " + receivedQty);
-			}
+			Assert.AreEqual (expectedQty, receivedQty);
 
 			double receivedPrice = BitConverter.ToDouble((byte[])dict["price"], 0);
 
-			if (expectedPrice != receivedPrice)
-			{
-				throw new Exception("Price mismatch: Expected " + expectedPrice + ". Received " + receivedPrice);
-			}
+			Assert.AreEqual (expectedPrice, receivedPrice);
 		}
 
 		/// <summary>
 		/// Use serialized bin for row in largelist bin. 
 		/// </summary>
-		private void RunWithSerializedBin(AerospikeClient client, Arguments args)
+		[TestCase]
+		public  void RunWithSerializedBin()
 		{
-			Key key = new Key(args.ns, args.set, "accountId");
+			Key key = new Key(NS, SET, "accountId");
 
 			// Delete record if it already exists.
-			client.Delete(args.writePolicy, key);
+			client.Delete(null, key);
 
 			// Initialize large list operator.
-			Aerospike.Client.LargeList list = client.GetLargeList(args.writePolicy, key, "trades");
+			Aerospike.Helper.Collections.LargeList list = new Aerospike.Helper.Collections.LargeList(client, null, key, "trades");
 
 			// Write trades
 			Dictionary<string, Value> dict = new Dictionary<string, Value>();
@@ -247,78 +293,63 @@ namespace Aerospike.Helper
 			// Verify list size
 			int size = list.Size();
 
-			if (size != 3)
-			{
-				throw new Exception("List size mismatch. Expected 3 Received " + size);
-			}
+			Assert.AreEqual (size, 3);
 
 			// Filter on range of timestamps
 			DateTime begin = new DateTime(2014, 6, 26);
 			DateTime end = new DateTime(2014, 6, 28);
 			IList results = list.Range(Value.Get(begin.Ticks), Value.Get(end.Ticks));
 
-			if (results.Count != 2)
-			{
-				throw new Exception("Query results size mismatch. Expected 2 Received " + results.Count);
-			}
+			Assert.AreEqual (results.Count, 2);
 
 			// Verify data.
 			ValidateWithSerializedBin(results, 0, timestamp2, "GE", 500, 26.36);
 			ValidateWithSerializedBin(results, 1, timestamp3, "AAPL", 75, 91.85);
 
-			console.Info("Data matched.");
+			Console.WriteLine("Data matched.");
 		}
 
-		private void ValidateWithSerializedBin(IList list, int index, DateTime expectedTime, string expectedTicker, int expectedQty, double expectedPrice)
+
+		public  void ValidateWithSerializedBin(IList list, int index, DateTime expectedTime, string expectedTicker, int expectedQty, double expectedPrice)
 		{
 			IDictionary dict = (IDictionary)list[index];
 			DateTime receivedTime = new DateTime((long)dict["key"]);
 
-			if (expectedTime != receivedTime)
-			{
-				throw new Exception("Time mismatch: Expected " + expectedTime + ". Received " + receivedTime);
-			}
+			Assert.AreEqual (expectedTime, receivedTime);
 
 			byte[] value = (byte[])dict["value"];
 			MemoryStream ms = new MemoryStream(value);
 			BinaryReader reader = new BinaryReader(ms);
 			string receivedTicker = reader.ReadString();
 
-			if (expectedTicker != receivedTicker)
-			{
-				throw new Exception("Ticker mismatch: Expected " + expectedTicker + ". Received " + receivedTicker);
-			}
+			Assert.AreEqual (expectedTicker, receivedTicker);
 
 			int receivedQty = reader.ReadInt32();
 
-			if (expectedQty != receivedQty)
-			{
-				throw new Exception("Quantity mismatch: Expected " + expectedQty + ". Received " + receivedQty);
-			}
+			Assert.AreEqual (expectedQty, receivedQty);
 
 			double receivedPrice = reader.ReadDouble();
 
-			if (expectedPrice != receivedPrice)
-			{
-				throw new Exception("Price mismatch: Expected " + expectedPrice + ". Received " + receivedPrice);
-			}
+			Assert.AreEqual (expectedPrice, receivedPrice);
 		}
 
 		/// <summary>
 		/// Use default serialized bin for row in largelist bin. 
 		/// </summary>
-		private void RunWithDefaultSerializedBin(AerospikeClient client, Arguments args)
+		/// 
+		[TestCase]
+		public void RunWithDefaultSerializedBin()
 		{
-			Key key = new Key(args.ns, args.set, "accountId");
+			Key key = new Key(NS, SET, "accountId");
 			object value1 = new CompoundObject("IBM", 100);
 			object value2 = new CompoundObject("GE", 500);
 			object value3 = new CompoundObject("AAPL", 75);
 
 			// Delete record if it already exists.
-			client.Delete(args.writePolicy, key);
+			client.Delete(null, key);
 
 			// Initialize large list operator.
-			Aerospike.Client.LargeList list = client.GetLargeList(args.writePolicy, key, "trades");
+			Aerospike.Helper.Collections.LargeList list = new Aerospike.Helper.Collections.LargeList(client, null, key, "trades");
 
 			// Write trades
 			Dictionary<string, Value> dict = new Dictionary<string, Value>();
@@ -341,28 +372,59 @@ namespace Aerospike.Helper
 			// Verify list size
 			int size = list.Size();
 
-			if (size != 3)
-			{
-				throw new Exception("List size mismatch. Expected 3 Received " + size);
-			}
+			Assert.AreEqual (size, 3);
 
 			// Filter on range of timestamps
 			DateTime begin = new DateTime(2014, 6, 26);
 			DateTime end = new DateTime(2014, 6, 28);
 			IList results = list.Range(Value.Get(begin.Ticks), Value.Get(end.Ticks));
 
-			if (results.Count != 2)
-			{
-				throw new Exception("Query results size mismatch. Expected 2 Received " + results.Count);
-			}
+			Assert.AreEqual (results.Count, 2); 
 
 			// Verify data.
 			ValidateDefault(results, 0, timestamp2, value2);
 			ValidateDefault(results, 1, timestamp3, value3);
 
-			console.Info("Data matched.");
+			Console.WriteLine("Data matched.");
+		}
+
+		private static void ValidateDefault(IList list, int index, DateTime expectedTime, object expectedValue)
+		{
+			IDictionary dict = (IDictionary)list[index];
+			DateTime receivedTime = new DateTime((long)dict["key"]);
+
+			Assert.AreEqual (expectedTime, receivedTime);
+
+			object receivedValue = dict["value"];
+
+			Assert.AreNotEqual (receivedValue, expectedValue);
 		}
 
 	}
+
+	[Serializable]
+	class CompoundObject
+	{
+		public string a;
+		public int b;
+
+		public CompoundObject(string a, int b)
+		{
+			this.a = a;
+			this.b = b;
+		}
+
+		public override bool Equals(object other)
+		{
+			CompoundObject o = (CompoundObject)other;
+			return this.a.Equals(o.a) && this.b == o.b;
+		}
+
+		public override int GetHashCode()
+		{
+			return a.GetHashCode() + b;
+		}
+	}
+
 }
 
