@@ -366,7 +366,6 @@ namespace Aerospike.Helper.Collections
 
 		/// <summary>
 		/// Select values from the begin key up to a maximum count.
-		/// Supported by server versions >= 3.5.8.
 		/// </summary>
 		/// <param name="begin">start value (inclusive)</param>
 		/// <param name="count">maximum number of values to return</param>
@@ -418,16 +417,27 @@ namespace Aerospike.Helper.Collections
 
 		/// <summary>
 		/// Select range of values from list.
-		/// 
-		/// THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
-		/// 
 		/// </summary>
 		/// <param name="begin">low value of the range (inclusive)</param>
 		/// <param name="end">high value of the range (inclusive)</param>
 		/// <param name="count">maximum number of values to return, pass in zero to obtain all values within range</param>
 		public IList Range (Value begin, Value end, int count)
 		{
-			throw new NotImplementedException ();
+			IList results = new List<Object> ();
+			Key[] elementKeys = GetElementKeys();
+			if (elementKeys != null || elementKeys.Length > 0) {
+				IList<Record> records = FetchSubRecords(elementKeys);
+				int found = 0;
+				foreach (Record record in records) {
+					if (record != null && FilterBinByRange (record, ListElementBinName, begin, end)) {
+						results.Add (record.GetValue (ListElementBinName));
+						found++;
+						if (found == count)
+							break;
+					}
+				}
+			}
+			return results;
 		}
 
 		/// <summary>
