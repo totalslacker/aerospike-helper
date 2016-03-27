@@ -35,7 +35,14 @@ namespace Aerospike.Helper.Collections
 				clientPolicy.timeout = TIMEOUT;
 				client = new AerospikeClient(clientPolicy, HOST, PORT);
 				client.writePolicyDefault.expiration = EXPIRY;
-				client.writePolicyDefault.recordExistsAction = RecordExistsAction.REPLACE;
+				//client.writePolicyDefault.recordExistsAction = RecordExistsAction.REPLACE;
+
+				Key key = new Key (NS, SET, "CDT-list-test-key");
+				client.Delete(null, key);
+				key = new Key(NS, SET, "setkey");
+				client.Delete(null, key);
+				key = new Key(NS, SET, "accountId");
+				client.Delete(null, key);
 
 			} catch (Exception ex)
 			{
@@ -55,18 +62,91 @@ namespace Aerospike.Helper.Collections
 			} 
 		}
 
+
+		private void WriteIntSubElements(Aerospike.Helper.Collections.LargeList ll, int number){
+			for (int x = 0; x < number; x++) {
+				ll.Add(Value.Get(x));
+			}
+			Assert.AreEqual (number, ll.Size ());
+		}
+		private void WriteStringSubElements(Aerospike.Helper.Collections.LargeList ll, int number){
+			for (int x = 0; x < number; x++) {
+				ll.Add(Value.Get("cats-dogs-"+x));
+			}
+			Assert.AreEqual (number, ll.Size ());
+		}
+			
+		[TestCase]
+		public void Add100IntOneByOne(){
+			Key key = new Key (NS, SET, "100-list-test-key-int");
+			client.Delete(null, key);
+			var ll = new Aerospike.Helper.Collections.LargeList (client, null, key, "100-int");
+			WriteIntSubElements (ll, 100);
+			Assert.AreEqual (100, ll.Size ());
+			ll.Destroy ();
+			client.Delete(null, key);
+
+
+		}
+
+		[TestCase]
+		public void Add100StringOneByOne(){
+			Key key = new Key (NS, SET, "100-list-test-key-string");
+			client.Delete(null, key);
+			var ll = new Aerospike.Helper.Collections.LargeList (client, null, key, "100-string");
+			WriteIntSubElements (ll, 100);
+			Assert.AreEqual (100, ll.Size ());
+			ll.Destroy ();
+			client.Delete(null, key);
+
+
+		}
+
+		[TestCase]
+		public void ScanInt(){
+			Key key = new Key (NS, SET, "100-list-test-key-int");
+			client.Delete(null, key);
+			var ll = new Aerospike.Helper.Collections.LargeList (client, null, key, "100-int");
+			WriteIntSubElements (ll, 100);
+			IList values = ll.Scan ();
+			Assert.AreEqual (100, ll.Size ());
+			for (int x = 0; x < 100; x++) {
+				Assert.AreEqual (values [x], x);
+			}
+			ll.Destroy ();
+			client.Delete(null, key);
+
+		}
+		[TestCase]
+		public void ScanString(){
+			Key key = new Key (NS, SET, "100-list-test-key-string");
+			client.Delete(null, key);
+			var ll = new Aerospike.Helper.Collections.LargeList (client, null, key, "100-string");
+			WriteStringSubElements (ll, 100);
+			IList values = ll.Scan ();
+			Assert.AreEqual (100, ll.Size ());
+			for (int x = 0; x < 100; x++) {
+				Assert.AreEqual (values [x], "cats-dogs-"+x);
+			}
+			ll.Destroy ();
+			client.Delete(null, key);
+
+		}
 		[TestCase]
 		public void CDTListOperations(){
 			Key key = new Key (NS, SET, "CDT-list-test-key");
-			Record record = client.Operate(null, key, ListOperation.Clear("integer-list"));
 			IList inputList = new List<Value>();
 			inputList.Add(Value.Get(55));
 			inputList.Add(Value.Get(77));
 			for (int x = 0; x < 100; x++) {
 				client.Operate(null, key, ListOperation.Insert("integer-list", 0, Value.Get(x)));
 			}
+			Record record = client.Operate(null, key, ListOperation.Size("integer-list"));
+			Assert.AreEqual (100, record.GetInt("integer-list"));
+			record = client.Operate(null, key, ListOperation.AppendItems("integer-list", inputList));
 			record = client.Operate(null, key, ListOperation.Size("integer-list"));
-			//record = client.Operate(null, key, ListOperation.AppendItems("integer-list", inputList));
+			Assert.AreEqual (102, record.GetInt("integer-list"));
+
 		}
 
 		/// <summary>
@@ -92,12 +172,16 @@ namespace Aerospike.Helper.Collections
 			llist.Add(Value.Get(orig2));
 			llist.Add(Value.Get(orig3));
 
-			IDictionary map = llist.GetConfig();
+			Assert.AreEqual (llist.Size(), 3);
 
-			foreach (DictionaryEntry entry in map)
-			{
-				Console.WriteLine(entry.Key.ToString() + ',' + entry.Value);
-			}
+
+// Config is not supported
+//			IDictionary map = llist.GetConfig();
+//
+//			foreach (DictionaryEntry entry in map)
+//			{
+//				Console.WriteLine(entry.Key.ToString() + ',' + entry.Value);
+//			}
 
 			IList rangeList = llist.Range(Value.Get(orig2), Value.Get(orig3));
 
@@ -397,7 +481,7 @@ namespace Aerospike.Helper.Collections
 
 			object receivedValue = dict["value"];
 
-			Assert.AreNotEqual (receivedValue, expectedValue);
+			Assert.True (receivedValue.Equals(expectedValue));
 		}
 
 	}
