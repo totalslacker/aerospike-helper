@@ -81,16 +81,77 @@ public class LargeList {
 		return keys;
 	}
 
+	private Key[] getElementKeys ()
+	{
+		Key[] keys = null;
+		Record topRecord = client.get (this.policy, this.key, this.binNameString);
+		if (topRecord != null) {
+			List<byte[]> digestList = (List<byte[]>) topRecord.getList (this.binNameString);
+			if (digestList != null) {
+				keys = new Key[digestList.size()];
+				int index = 0;
+				for (byte[] digest : digestList) {
+					Key subKey = new Key (this.key.namespace, digest, null, null);
+					keys [index] = subKey;
+					index++;
+				}
+			}
+		}
+		return keys;
+	}
+
+	private boolean filterBinByRange (Record record, String bin, Value low, Value high)
+	{
+		if (record == null)
+			return false;
+		Object value = record.getValue (bin);
+		if (value instanceof List) {
+			//TODO
+			return false;
+		} else if (value instanceof  Map) {
+			Map dict = (Map)value;
+			Object keyValue = dict.get("key");
+			if (keyValue == null)
+				return false;
+			return filterRange (keyValue, low, high);
+		} else {
+			return filterRange (value, low, high);
+		}
+	}
+
+	private boolean filterRange(Object value, Value low, Value high){
+		if (value instanceof Long) {
+			return (((Long)low.getObject()) <= (Long)value) && (((Long)high.getObject()) >= (Long)value);
+		} else if (value instanceof String) {
+			return ( ((String)low.getObject()).compareTo((String)value) <= 0) && (((String)high.getObject()).compareTo((String)value) >= 0);
+		} else if (value instanceof Double) {
+			return (((Double)low.getObject()) <= (Double)value) && (((Double)high.getObject()) >= (Double)value);
+		} else {
+			return false;
+		}
+	}
 	private List<byte[]> getDigestList(){
 		Record topRecord = client.get (this.policy, this.key, this.binNameString);
 		if (topRecord == null)
 			return new ArrayList<byte[]> ();
-			List<byte[]> digestList = (List<byte[]>) topRecord.getValue (this.binNameString);
-			if (digestList == null)
-				return new ArrayList<byte[]> ();
-				return digestList;
+		List<byte[]> digestList = (List<byte[]>) topRecord.getValue (this.binNameString);
+		if (digestList == null)
+			return new ArrayList<byte[]> ();
+		return digestList;
 	}
 
+	private List<Record> fetchSubRecords(Key[] subKeys){
+		List<Record> results = new ArrayList<Record> ();
+		Record[] records = client.get (null, subKeys);
+		for (Record record : records) {
+			if (record != null)
+				results.add (record);
+		}
+		return results;
+
+	}
+
+	
 	/**
 	 * Add value to list. Fail if value's key exists and list is configured for unique keys.
 	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
@@ -326,12 +387,18 @@ public class LargeList {
 	 */
 	public List<?> range(Value begin, Value end)
 	{
-		List<byte[]> digestList = getDigestList ();
-		Key beginKey = makeSubKey (begin);
-		Key endKey = makeSubKey (end);
-		int start = digestList.indexOf (beginKey.digest);
-		int stop = digestList.indexOf (endKey.digest);
-		return get (digestList, start, stop);
+		List<Object> results = new ArrayList<Object> ();
+		Key[] elementKeys = getElementKeys();
+		if (elementKeys != null || elementKeys.length > 0) {
+			List<Record> records = fetchSubRecords(elementKeys);
+			for (Record record : records) {
+				if (record != null && filterBinByRange (record, ListElementBinName, begin, end)) {
+					results.add (record.getValue (ListElementBinName));
+				}
+			}
+		}
+		return results;
+
 	}
 
 	/**
@@ -380,21 +447,17 @@ public class LargeList {
 		throw new NotImplementedException();
 	}
 
-	public List<?> scan()
-	{
-
-		List<byte[]> digestList = getDigestList ();
-		if (digestList != null || digestList.size() > 0) {
-			List<Value> results = new ArrayList<Value> ();
-			for (byte[] digest : digestList) {
-				Key subKey = new Key (this.key.namespace, digest, null, null);
-				Record record = client.get (this.policy, subKey, this.binNameString);
-				results.add ((Value) record.getValue (ListElementBinName));
+	public List<?> scan() {
+		List<Object> results = new ArrayList<Object> ();
+		Key[] elementKeys = getElementKeys();
+		if (elementKeys != null || elementKeys.length > 0) {
+			List<Record> records = fetchSubRecords(elementKeys);
+			for (Record record : records) {
+				if (record != null)
+					results.add (record.getValue (ListElementBinName));
 			}
-			return results;
-
 		}
-		return null;
+		return results;
 	}
 
 	/**

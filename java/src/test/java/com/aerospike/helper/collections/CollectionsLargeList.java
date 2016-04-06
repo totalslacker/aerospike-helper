@@ -119,7 +119,7 @@ public class CollectionsLargeList {
 		List<?> values = ll.scan ();
 		Assert.assertEquals (100, ll.size ());
 		for (int x = 0; x < 100; x++) {
-			Assert.assertEquals (values.get(x), x);
+			Assert.assertEquals (values.get(x), (long)x);
 		}
 		ll.destroy ();
 		client.delete(null, key);
@@ -382,7 +382,7 @@ public class CollectionsLargeList {
 		Calendar end = new GregorianCalendar(2014, 6, 28);
 		List<Map<String,Object>> results = (List<Map<String,Object>>)list.range(Value.get(begin.getTimeInMillis()), Value.get(end.getTimeInMillis()));
 
-		Assert.assertEquals (results.size(), 2);
+		Assert.assertEquals (results.size(), 2, 0.001);
 
 		// Verify data.
 		validateWithSerializedBin(results, 0, timestamp2, "GE", 500, 26.36);
@@ -413,7 +413,7 @@ public class CollectionsLargeList {
 
 		double receivedPrice = reader.readDouble();
 
-		Assert.assertEquals (expectedPrice, receivedPrice);
+		Assert.assertEquals (expectedPrice, receivedPrice, 001);
 	}
 
 
