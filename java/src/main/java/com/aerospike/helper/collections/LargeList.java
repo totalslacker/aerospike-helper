@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.aerospike.client.AerospikeClient;
+import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Bin;
 import com.aerospike.client.Key;
 import com.aerospike.client.Record;
@@ -14,7 +15,6 @@ import com.aerospike.client.policy.WritePolicy;
 /**
  * An implementation of LargeList using standard KV operations
  * 
- * WARNING: This code is only a first cut and not extensively tested
  * @author peter
  *
  */
@@ -26,6 +26,15 @@ public class LargeList {
 	private Key key;
 	private Value binName;
 	private String binNameString;
+
+	/**
+	 * Initialize large list operator.
+	 * 
+	 * @param client				client
+	 * @param policy				generic configuration parameters, pass in null for defaults
+	 * @param key					unique record identifier
+	 * @param binName				bin name
+	 */
 
 	public LargeList(AerospikeClient client, WritePolicy policy, Key key, String binName)
 	{
@@ -82,6 +91,13 @@ public class LargeList {
 				return digestList;
 	}
 
+	/**
+	 * Add value to list. Fail if value's key exists and list is configured for unique keys.
+	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
+	 * If large list does not exist, create it.
+	 * 
+	 * @param value				value to add
+	 */
 	public void add(Value value)
 	{
 
@@ -93,6 +109,13 @@ public class LargeList {
 		client.operate(this.policy, this.key, ListOperation.append(this.binNameString, Value.get(subKey.digest)));
 
 	}
+	/**
+	 * Add values to the list.  Fail if a value's key exists and list is configured for unique keys.
+	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
+	 * If large list does not exist, create it.
+	 * 
+	 * @param values			values to add
+	 */
 	public void add(List<Value> items)
 	{
 		for(Value Value : items){
@@ -100,12 +123,26 @@ public class LargeList {
 		}
 	}
 
+	/**
+	 * Add values to list.  Fail if a value's key exists and list is configured for unique keys.
+	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
+	 * If large list does not exist, create it.
+	 * 
+	 * @param values			values to add
+	 */
 	public void add(Value... items)
 	{
 		for(Value Value : items){
 			this.add(Value);
 		}
 	}
+	/**
+	 * Update value in list if key exists.  Add value to list if key does not exist.
+	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
+	 * If large list does not exist, create it.
+	 * 
+	 * @param value				value to update
+	 */
 	public void update(Value value)
 	{
 
@@ -116,21 +153,39 @@ public class LargeList {
 			client.put (this.policy, subKey, new Bin (ListElementBinName, value));
 		}
 	}
+	/**
+	 * Update/Add each value in array depending if key exists or not.
+	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
+	 * If large list does not exist, create it.
+	 * 
+	 * @param values			values to update
+	 */
 	public void update(Value... values)
 	{
 		for(Value value : values){
 			this.update(value);
 		}
 	}
-
-	public void update(List<Value> values)
+	/**
+	 * Update/Add each value in values list depending if key exists or not.
+	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
+	 * If large list does not exist, create it.
+	 * 
+	 * @param values			values to update
+	 */
+	public void update(List<?> values)
 	{
-		for(Value value : values){
-			this.update(value);
+		for(Object value : values){
+			this.update(Value.get(value));
 		}
 
 	}
 
+	/**
+	 * Delete value from list.
+	 * 
+	 * @param value				value to delete
+	 */
 	public void remove(Value value)
 	{
 		Key subKey = makeSubKey (value);
@@ -141,6 +196,11 @@ public class LargeList {
 
 	}
 
+	/**
+	 * Delete values from list.
+	 * 
+	 * @param values			values to delete
+	 */
 	public void remove(List<Value> values)
 	{
 		Key[] keys = makeSubKeys (values);
@@ -165,6 +225,13 @@ public class LargeList {
 
 	}
 
+	/**
+	 * Delete values from list between range.
+	 * 
+	 * @param begin				low value of the range (inclusive)
+	 * @param end				high value of the range (inclusive)
+	 * @return					count of entries removed
+	 */
 	public int remove(Value begin, Value end)
 	{
 		List<byte[]> digestList = getDigestList ();
@@ -180,6 +247,11 @@ public class LargeList {
 		client.operate(this.policy, this.key, ListOperation.removeRange(this.binNameString, start, count));
 		return count;
 	}
+	/**
+	 * Does key value exist?
+	 * 
+	 * @param keyValue			key value to lookup
+	 */
 	public boolean exists(Value keyValue)
 	{
 		Key subKey = makeSubKey (keyValue);
@@ -187,18 +259,26 @@ public class LargeList {
 
 	}
 
-	public List<Boolean> exists (List<Value> keyValues)
-	{
+	/**
+	 * Do key values exist?  Return list of results in one batch call.
+	 * 
+	 * @param keyValues			key values to lookup
+	 */
+	public List<Boolean> exists(List<Value> keyValues) throws AerospikeException {
 		List<Boolean> target = new ArrayList<Boolean> ();
 		for (Object value : keyValues) {
 			target.add (exists (Value.get(value)));
 		}
 		return target;
-
 	}
 
-	public List<?> find(Value value)
-	{
+	/**
+	 * Select values from list.
+	 * 
+	 * @param value				value to select
+	 * @return					list of entries selected
+	 */
+	public List<?> find(Value value) throws AerospikeException {
 		Key subKey = makeSubKey (value);
 		Record record = client.get (this.policy, subKey, ListElementBinName);
 		if (record != null) {
@@ -222,20 +302,28 @@ public class LargeList {
 		return results;
 	}
 
-	public List<?> findFrom (Value begin, int count)
-	{
+	/**
+	 * Select values from the begin key up to a maximum count.
+	 * 
+	 * @param begin				start value (inclusive)
+	 * @param count				maximum number of values to return
+	 * @return					list of entries selected
+	 */
+	public List<?> findFrom(Value begin, int count) throws AerospikeException {
 		List<byte[]> digestList = getDigestList ();
 		Key beginKey = makeSubKey (begin);
 		int start = digestList.indexOf (beginKey.digest);
 		int stop = start + count;
 		return get (digestList, start, stop);
 	}
-	//
-	//	public IList FindFrom(Value begin, int count, string filterModule, string filterName, params Value[] filterArgs)
-	//	{
-	//		return (IList)client.Execute(policy, key, PackageName, "find_from", binName, begin, Value.Get(count), Value.Get(filterModule), Value.Get(filterName), Value.Get(filterArgs));
-	//	}
 
+	/**
+	 * Select a range of values from the large list.
+	 * 
+	 * @param begin				low value of the range (inclusive)
+	 * @param end				high value of the range (inclusive)
+	 * @return					list of entries selected
+	 */
 	public List<?> range(Value begin, Value end)
 	{
 		List<byte[]> digestList = getDigestList ();
@@ -246,20 +334,51 @@ public class LargeList {
 		return get (digestList, start, stop);
 	}
 
-	//	public IList Range(Value begin, Value end, int count)
-	//	{
-	//		return (IList)client.Execute(policy, key, PackageName, "find_range", binName, begin, end, Value.Get(count));
-	//	}
-	//
-	//	public IList Range(Value begin, Value end, string filterModule, string filterName, params Value[] filterArgs)
-	//	{
-	//		return (IList)client.Execute(policy, key, PackageName, "range", binName, begin, end, Value.Get(filterModule), Value.Get(filterModule), Value.Get(filterArgs));
-	//	}
-	//
-	//	public IList Range(Value begin, Value end, int count, string filterModule, string filterName, params Value[] filterArgs)
-	//	{
-	//		return (IList)client.Execute(policy, key, PackageName, "find_range", binName, begin, end, Value.Get(count), Value.Get(filterModule), Value.Get(filterName), Value.Get(filterArgs));
-	//	}
+	/**
+	 * Select a range of values from the large list.
+	 * 
+	 * THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+	 * 
+	 * @param begin				low value of the range (inclusive)
+	 * @param end				high value of the range (inclusive)
+	 * @param count				maximum number of values to return, pass in zero to obtain all values within range
+	 * @return					list of entries selected
+	 */
+	public List<?> range(Value begin, Value end, int count) throws AerospikeException {
+		throw new NotImplementedException();
+	}
+
+	/**
+	 * Select a range of values from the large list, then apply a Lua filter.
+	 * 
+	 * THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+	 * 
+	 * @param begin				low value of the range (inclusive)
+	 * @param end				high value of the range (inclusive)
+	 * @param filterModule		Lua module name which contains filter function
+	 * @param filterName		Lua function name which applies filter to returned list
+	 * @param filterArgs		arguments to Lua function name
+	 * @return					list of entries selected
+	 */
+	public List<?> range(Value begin, Value end, String filterModule, String filterName, Value... filterArgs) throws AerospikeException {
+		throw new NotImplementedException();
+	}
+	/**
+	 * Select a range of values from the large list, then apply a lua filter.
+	 * 
+	 * THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+	 * 
+	 * @param begin				low value of the range (inclusive)
+	 * @param end				high value of the range (inclusive)
+	 * @param count				maximum number of values to return after applying lua filter. Pass in zero to obtain all values within range. 
+	 * @param filterModule		lua module name which contains filter function
+	 * @param filterName		lua function name which applies filter to returned list
+	 * @param filterArgs		arguments to lua function name
+	 * @return					list of entries selected
+	 */
+	public List<?> range(Value begin, Value end, int count, String filterModule, String filterName, Value... filterArgs) throws AerospikeException {
+		throw new NotImplementedException();
+	}
 
 	public List<?> scan()
 	{
@@ -278,11 +397,23 @@ public class LargeList {
 		return null;
 	}
 
-	//	public IList Filter(string filterModule, string filterName, params Value[] filterArgs)
-	//	{
-	//		return (IList)client.Execute(policy, key, PackageName, "filter", binName, Value.AsNull, Value.Get(filterModule), Value.Get(filterName), Value.Get(filterArgs));
-	//	}
+	/**
+	 * Select values from list and apply specified Lua filter.
+	 *  
+	 * THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+	 *  
+	 * @param filterModule		Lua module name which contains filter function
+	 * @param filterName		Lua function name which applies filter to returned list
+	 * @param filterArgs		arguments to Lua function name
+	 * @return					list of entries selected
+	 */
+	public List<?> filter(String filterModule, String filterName, Value... filterArgs) throws AerospikeException {
+		throw new NotImplementedException();
+	}
 
+	/**
+	 * Delete bin containing the list.
+	 */
 	public void destroy ()
 	{
 		List<byte[]> digestList = getDigestList ();
@@ -297,20 +428,39 @@ public class LargeList {
 
 	}
 
+	/**
+	 * Return size of list.
+	 */
 	public int size()
 	{
 		Record record = client.operate(this.policy, this.key, ListOperation.size(this.binNameString));
-		return record.getInt ("Count");
+		if (record != null) {
+			return record.getInt (this.binNameString);
+		}
+		return 0;
 	}
 
-	public Map<?,?> GetConfig()
+	/**
+	 * Return map of list configuration parameters.
+	 *  
+	 * THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+	 *  
+	 */
+	public Map<?,?> getConfig()
 	{
-		return null;  // No config because its NotSupportedException AsyncNode LDT
+		throw new NotImplementedException ();
 	}
 
-	public void SetPageSize(int pageSize)
+	/**
+	 * Set LDT page size. 
+	 * 
+	 * THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
+	 * 
+	 */
+
+	public void setPageSize(int pageSize)
 	{
-		// do nothing
+		throw new NotImplementedException ();
 	}
 
 }
