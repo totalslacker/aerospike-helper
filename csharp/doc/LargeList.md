@@ -63,7 +63,7 @@ Here are several examples using different data types as list elements
 The `Scan()` method is implemented with a batch read to return all the elements.
 
 ### More complex example
-In this example, a number of elements are created that represent stock trades. These are added to the LargeList and returned with the `range()` method.
+In this example, a number of elements are created that represent stock trades. These are added to the LargeList and returned with the `Range()` method.
 
 ```C#
 	Key key = new Key(NS, SET, "accountId");
