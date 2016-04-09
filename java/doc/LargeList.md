@@ -5,13 +5,14 @@ This is an implementation of a LargeList that uses standard records. It provides
 Consider the following scenario:
 
 A customer holds an account with a strockbroking firm. The account can have zero or more holdings associated with it. An account has a zero-to-many relationship with holding, and reflects the account holders market position.
+
 ![One to many](OneToMany.png)
 
 The individual elements of the the LargeList are stored as separate records using a compound key. Foe example, if the primary key of the account record is the account number `1985672`, the compound key of the element containing GOOG (an account position of Google stocks) would be `1985671::GOOG`.
 
 In a normal LDT list, there is a control Bin that stores LDT meta data and each element is stored in a special sub-record. 
 
-![LDT](LDT.png)
+![LDT](../../LDT.png)
 
 In a CDT list, the elements of the list are stored contiguously in the Bin and the size of the list is limited by the maximum size of the record. Max record size is 128k by default, but can be expanded to 1M)
 
