@@ -102,7 +102,7 @@ public class CollectionsLargeList {
 		Key key = new Key (TestQueryEngine.NAMESPACE, SET, "100-list-test-key-String");
 		client.delete(null, key);
 		com.aerospike.helper.collections.LargeList ll = new com.aerospike.helper.collections.LargeList (client, null, key, "100-String");
-		writeIntSubElements (ll, 100);
+		writeStringSubElements (ll, 100);
 		Assert.assertEquals (100, ll.size ());
 		ll.destroy ();
 		client.delete(null, key);
@@ -417,40 +417,5 @@ public class CollectionsLargeList {
 	}
 
 
-//	private static void validateDefault(List<?> list, int index, DateTime expectedTime, Object expectedValue)
-//	{
-//		IDictionary dict = (IDictionary)list[index];
-//		DateTime receivedTime = new DateTime((long)dict["key"]);
-//
-//		Assert.assertEquals (expectedTime, receivedTime);
-//
-//		Object receivedValue = dict["value"];
-//
-//		Assert.assertTrue (receivedValue.equals(expectedValue));
-//	}
-
 }
 
-
-//class CompoundObject 
-//{
-//	public String a;
-//	public int b;
-//
-//	public CompoundObject(String a, int b)
-//	{
-//		this.a = a;
-//		this.b = b;
-//	}
-//
-//	public  boolean Equals(Object other)
-//	{
-//		CompoundObject o = (CompoundObject)other;
-//		return this.a.equals(o.a) && this.b == o.b;
-//	}
-//
-//	public  int getHashCode()
-//	{
-//		return a.getHashCode() + b;
-//	}
-//}

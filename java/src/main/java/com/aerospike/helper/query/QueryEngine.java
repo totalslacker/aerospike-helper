@@ -97,7 +97,7 @@ public class QueryEngine implements Closeable{
 	/**
 	 * The Query engine is constructed by passing in an existing 
 	 * AerospikeClient instance
-	 * @param client
+	 * @param client An instance of Aerospike client
 	 */
 	public QueryEngine(AerospikeClient client) {
 		this();
@@ -107,7 +107,10 @@ public class QueryEngine implements Closeable{
 		super();
 		Value.UseDoubleType = true; // Note: this supports the Double particle type
 	}
-	
+	/**
+	 * Sets the AerospikeClient
+	 * @param client An instance of AerospikeClient
+	 */
 	public void setClient(AerospikeClient client){
 		this.client = client;
 		this.updatePolicy = new WritePolicy(this.client.writePolicyDefault);
@@ -128,12 +131,13 @@ public class QueryEngine implements Closeable{
 
 
 	/**
-	 * @param namespace
-	 * @param setName
-	 * @param filter
-	 * @param sortMap
-	 * @param qualifiers
-	 * @return
+	 * Select records filtered by Qualifiers
+	 * @param namespace Namespace to storing the data
+	 * @param set Set storing the data
+	 * @param filter Aerospike Filter to be used
+	 * @param sortMap <STRONG>NOT IMPLEMENTED</STRONG>
+	 * @param qualifiers Zero or more Qualifiers for the update query
+	 * @return A KeyRecordIterator to iterate over the results
 	 */
 	public KeyRecordIterator select(String namespace, String set, Filter filter, Map<String, String> sortMap, Qualifier... qualifiers){
 		Statement stmt = new Statement();
@@ -144,6 +148,13 @@ public class QueryEngine implements Closeable{
 		return select(stmt, sortMap, qualifiers);	
 
 	}
+	/**
+	 * Select records filtered by Qualifiers
+	 * @param stmt A Statement object containing Namespace, Set and the Bins to be returned.
+	 * @param sortMap <STRONG>NOT IMPLEMENTED</STRONG>
+	 * @param qualifiers Zero or more Qualifiers for the update query
+	 * @return A KeyRecordIterator to iterate over the results
+	 */
 	public KeyRecordIterator select(Statement stmt, Map<String, String> sortMap, Qualifier... qualifiers){
 		KeyRecordIterator results = null;
 
@@ -164,6 +175,14 @@ public class QueryEngine implements Closeable{
 		return results;
 	}
 
+	/**
+	 * Select records filtered by a Filter and Qualifiers
+	 * @param namespace Namespace to storing the data
+	 * @param set Set storing the data
+	 * @param filter Aerospike Filter to be used
+	 * @param qualifiers Zero or more Qualifiers for the update query
+	 * @return A KeyRecordIterator to iterate over the results
+	 */
 	public KeyRecordIterator select(String namespace, String set, Filter filter, Qualifier... qualifiers){
 		Statement stmt = new Statement();
 		stmt.setNamespace(namespace);
@@ -178,13 +197,20 @@ public class QueryEngine implements Closeable{
 
 	/**
 	 * Select records filtered by Qualifiers
-	 * @param stmt
-	 * @param qualifiers
-	 * @return
+	 * @param stmt A Statement object containing Namespace, Set and the Bins to be returned.
+	 * @param qualifiers Zero or more Qualifiers for the update query
+	 * @return A KeyRecordIterator to iterate over the results
 	 */
 	public KeyRecordIterator select(Statement stmt, Qualifier... qualifiers){
 		return select(stmt, false, qualifiers);
 	}
+	/**
+	 * Select records filtered by Qualifiers
+	 * @param stmt A Statement object containing Namespace, Set and the Bins to be returned.
+	 * @param metaOnly Set to true to return only the record meta data 
+	 * @param qualifiers Zero or more Qualifiers for the update query
+	 * @return A KeyRecordIterator to iterate over the results
+	 */
 	public KeyRecordIterator select(Statement stmt, boolean metaOnly, Qualifier... qualifiers){
 		KeyRecordIterator results = null;
 		/*
@@ -265,23 +291,47 @@ public class QueryEngine implements Closeable{
 	 * 
 	 * ***************************************************** 
 	 */
-
+	/**
+	 * inserts a record. If the record exists, and exception will be thrown.
+	 * @param namespace Namespace to store the record
+	 * @param set Set to store the record
+	 * @param key Key of the record
+	 * @param bins A list of Bins to insert
+	 */
 	public void insert(String namespace, String set, Key key, List<Bin> bins){
 
 		insert(namespace, set, key, bins, 0)	;
 
 	}
-	
+	/**
+	 * inserts a record with a time to live. If the record exists, and exception will be thrown.
+	 * @param namespace Namespace to store the record
+	 * @param set Set to store the record
+	 * @param key Key of the record
+	 * @param bins A list of Bins to insert
+	 * @param ttl The record time to live in seconds
+	 */
 	public void insert(String namespace, String set, Key key, List<Bin> bins, int ttl){
 
 		this.client.put(this.insertPolicy, key, bins.toArray(new Bin[0]));	
 
 	}
-
+	/**
+	 * inserts a record using a Statement and KeyQualifier. If the record exists, and exception will be thrown.
+	 * @param stmt A Statement object containing Namespace and Set 
+	 * @param keyQualifier KeyQualifier containin the primary key
+	 * @param bins A list of Bins to insert
+	 */
 	public void insert(Statement stmt, KeyQualifier keyQualifier, List<Bin> bins){
 		insert(stmt, keyQualifier, bins, 0);
 	}
-
+	/**
+	 * inserts a record, with a time to live, using a Statement and KeyQualifier. If the record exists, and exception will be thrown.
+	 * @param stmt A Statement object containing Namespace and Set 
+	 * @param keyQualifier KeyQualifier containin the primary key
+	 * @param bins A list of Bins to insert
+	 * @param ttl The record time to live in seconds
+	 */
 	public void insert(Statement stmt, KeyQualifier keyQualifier, List<Bin> bins, int ttl){
 		Key key = keyQualifier.makeKey(stmt.getNamespace(), stmt.getSetName());
 //		Key key = new Key(stmt.getNamespace(), stmt.getSetName(), keyQualifier.getValue1());
@@ -299,10 +349,10 @@ public class QueryEngine implements Closeable{
 	 */
 	/**
 	 * The list of Bins will update each record that match the Qualifiers supplied.
-	 * @param stmt 
-	 * @param bins
-	 * @param qualifiers
-	 * @return
+	 * @param stmt A Statement object containing Namespace and Set 
+	 * @param bins A list of Bin objects with the values to updated
+	 * @param qualifiers Zero or more Qualifiers for the update query
+	 * @return returns a Map containing a number of successful updates. The Map will contain 2 keys "read" and "write", the values will be the count of successful operations
 	 */
 	public Map<String, Long> update(Statement stmt, List<Bin> bins, Qualifier... qualifiers){
 		if (qualifiers != null && qualifiers.length == 1 && qualifiers[0] instanceof KeyQualifier)  {
@@ -346,6 +396,12 @@ public class QueryEngine implements Closeable{
 	 * Delete
 	 * 
 	 * ***************************************************** 
+	 */
+	/**
+	 * Deletes the records specified by the Statement and Qualifiers
+	 * @param stmt A Statement object containing Namespace and Set 
+	 * @param qualifiers Zero or more Qualifiers for the update query
+	 * @return returns a Map containing a number of successful updates. The Map will contain 2 keys "read" and "write", the values will be the count of successful operations
 	 */
 	public Map<String, Long> delete(Statement stmt, Qualifier... qualifiers){
 		if (qualifiers == null || qualifiers.length == 0){
@@ -425,20 +481,27 @@ public class QueryEngine implements Closeable{
 			task.isDone();
 		}
 	}
-
+	/**
+	 * Gets the current InfoPolicy
+	 * @return the current InfoPolicy
+	 */
 	public InfoPolicy getInfoPolicy(){
 		if (this.infoPolicy == null){
 			this.infoPolicy = new InfoPolicy();
 		}
 		return this.infoPolicy;
 	}
-
+	/**
+	 * refreshes the cached Cluster information
+	 */
 	public void refreshCluster(){
 		refreshNamespaces();
 		refreshIndexes();
 		refreshModules();
 	}
-	
+	/**
+	 * refreshes the cached Namespace information
+	 */
 	public synchronized void refreshNamespaces(){
 		/*
 		 * cache namespaces
@@ -486,16 +549,25 @@ public class QueryEngine implements Closeable{
 			log.error("Error geting Namespace details", e);
 		}	
 	}
-
+	/**
+	 * Get as specific Namespace from the cache
+	 * @param namespace Namespace name
+	 * @return The Namespace model object
+	 */
 	public Namespace getNamespace(String namespace) {
 		return namespaceCache.get(namespace);
 	}
-
+	/**
+	 * Gets all the Namespaces from the cache
+	 * @return A collection of Namespace model objects
+	 */
 	public Collection<Namespace> getNamespaces() {
 		return namespaceCache.values();
 	}
 
-	
+	/**
+	 * refreshes the Index cacge from the Cluster
+	 */
 	public synchronized void refreshIndexes(){
 		/*
 		 * cache index by Bin name
@@ -523,11 +595,17 @@ public class QueryEngine implements Closeable{
 			}
 		}
 	}
-
+	/**
+	 * Gets a specific index from the index cache by Bin name
+	 * @param binName The name of the indexed Bin
+	 * @return An Index model object
+	 */
 	public synchronized Index getIndex(String binName){
 		return this.indexCache.get(binName);
 	}
-
+	/**
+	 * refreshes the Module cache from the cluster. The Module cache contains a list of register UDF modules.
+	 */
 	public synchronized void refreshModules(){
 		if (this.moduleCache == null)
 			this.moduleCache = new TreeMap<String, Module>();
@@ -548,11 +626,18 @@ public class QueryEngine implements Closeable{
 			}
 		}
 	}
-
+	/**
+	 * Gets a specific Module from the cache by name
+	 * @param moduleName The name of the module
+	 * @return A Module model object
+	 */
 	public synchronized Module getModule(String moduleName){
 		return this.moduleCache.get(moduleName);
 	}
-
+	/**
+	 * closes the QueryEngine, clearing the cached information are closing the AerospikeClient. 
+	 * Once the QueryEngine is closed, it cannot be used, nor can the AerospikeClient.
+	 */
 	@Override
 	public void close() throws IOException {
 		if (this.client != null)

@@ -13,9 +13,20 @@ import com.aerospike.client.Value;
 import com.aerospike.client.cdt.ListOperation;
 import com.aerospike.client.policy.WritePolicy;
 /**
- * An implementation of LargeList using standard KV operations
+ * An implementation of LargeList using standard KV operations.
+ * <p>
+ * <STRONG>Not all operations are implemented, methods that invoke UDFs for filtering are not implemented and will throw a NotImplementedException if called</STRONG>
+ * <p>
+ * This code fragment shows how to create a LargeList.  An existing AerospikeClient is passed to the constructor, along wit an optional WritePolicy, the Key of the top record and the name of the large list Bin.
+ * <pre>
+ * {@code
+ * AerospikeClient client = new AerospikeClient(clientPolicy, "127.0.0.1", 3000);
+ * com.aerospike.helper.collections.LargeList ll = new com.aerospike.helper.collections.LargeList (client, null, key, "100-int");
+ * }
+ * </pre>
+ *<p>
  * 
- * @author peter
+ * @author Peter Milne
  *
  */
 public class LargeList {
@@ -29,11 +40,12 @@ public class LargeList {
 
 	/**
 	 * Initialize large list operator.
-	 * 
+	 * <p>
 	 * @param client				client
 	 * @param policy				generic configuration parameters, pass in null for defaults
-	 * @param key					unique record identifier
+	 * @param key					unique record identifier of the top record
 	 * @param binName				bin name
+	 * 
 	 */
 
 	public LargeList(AerospikeClient client, WritePolicy policy, Key key, String binName)
@@ -156,8 +168,8 @@ public class LargeList {
 	 * Add value to list. Fail if value's key exists and list is configured for unique keys.
 	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
 	 * If large list does not exist, create it.
-	 * 
-	 * @param value				value to add
+	 * <p>
+	 * @param value value to add
 	 */
 	public void add(Value value)
 	{
@@ -174,8 +186,8 @@ public class LargeList {
 	 * Add values to the list.  Fail if a value's key exists and list is configured for unique keys.
 	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
 	 * If large list does not exist, create it.
-	 * 
-	 * @param values			values to add
+	 * <p>
+	 * @param items values to add
 	 */
 	public void add(List<Value> items)
 	{
@@ -189,7 +201,7 @@ public class LargeList {
 	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
 	 * If large list does not exist, create it.
 	 * 
-	 * @param values			values to add
+	 * @param items values to add
 	 */
 	public void add(Value... items)
 	{
@@ -202,7 +214,7 @@ public class LargeList {
 	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
 	 * If large list does not exist, create it.
 	 * 
-	 * @param value				value to update
+	 * @param value	value to update
 	 */
 	public void update(Value value)
 	{
@@ -219,7 +231,7 @@ public class LargeList {
 	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
 	 * If large list does not exist, create it.
 	 * 
-	 * @param values			values to update
+	 * @param values An array of values to update
 	 */
 	public void update(Value... values)
 	{
@@ -232,7 +244,7 @@ public class LargeList {
 	 * If value is a map, the key is identified by "key" entry.  Otherwise, the value is the key.
 	 * If large list does not exist, create it.
 	 * 
-	 * @param values			values to update
+	 * @param values A list of values to update
 	 */
 	public void update(List<?> values)
 	{
@@ -245,7 +257,7 @@ public class LargeList {
 	/**
 	 * Delete value from list.
 	 * 
-	 * @param value				value to delete
+	 * @param value	The value to value to delete
 	 */
 	public void remove(Value value)
 	{
@@ -260,7 +272,7 @@ public class LargeList {
 	/**
 	 * Delete values from list.
 	 * 
-	 * @param values			values to delete
+	 * @param values A list of values to delete
 	 */
 	public void remove(List<Value> values)
 	{
@@ -288,7 +300,7 @@ public class LargeList {
 
 	/**
 	 * Delete values from list between range.
-	 * 
+	 * <p>
 	 * @param begin				low value of the range (inclusive)
 	 * @param end				high value of the range (inclusive)
 	 * @return					count of entries removed
@@ -310,8 +322,9 @@ public class LargeList {
 	}
 	/**
 	 * Does key value exist?
-	 * 
+	 * <p>
 	 * @param keyValue			key value to lookup
+	 * @return					true if value exists
 	 */
 	public boolean exists(Value keyValue)
 	{
@@ -322,8 +335,9 @@ public class LargeList {
 
 	/**
 	 * Do key values exist?  Return list of results in one batch call.
-	 * 
+	 * <p>
 	 * @param keyValues			key values to lookup
+	 * @return					list of booleans indicating which elements exist
 	 */
 	public List<Boolean> exists(List<Value> keyValues) throws AerospikeException {
 		List<Boolean> target = new ArrayList<Boolean> ();
@@ -365,7 +379,7 @@ public class LargeList {
 
 	/**
 	 * Select values from the begin key up to a maximum count.
-	 * 
+	 * <p>
 	 * @param begin				start value (inclusive)
 	 * @param count				maximum number of values to return
 	 * @return					list of entries selected
@@ -380,7 +394,7 @@ public class LargeList {
 
 	/**
 	 * Select a range of values from the large list.
-	 * 
+	 * <p>
 	 * @param begin				low value of the range (inclusive)
 	 * @param end				high value of the range (inclusive)
 	 * @return					list of entries selected
@@ -403,23 +417,24 @@ public class LargeList {
 
 	/**
 	 * Select a range of values from the large list.
-	 * 
-	 * THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
-	 * 
+	 * <p>
+	 * <STRONG>THIS METHOD IS NOT IMPLEMENTED - DO NOT USE</STRONG>
+	 * <p>
 	 * @param begin				low value of the range (inclusive)
 	 * @param end				high value of the range (inclusive)
 	 * @param count				maximum number of values to return, pass in zero to obtain all values within range
 	 * @return					list of entries selected
 	 */
+	@Deprecated
 	public List<?> range(Value begin, Value end, int count) throws AerospikeException {
 		throw new NotImplementedException();
 	}
 
 	/**
 	 * Select a range of values from the large list, then apply a Lua filter.
-	 * 
-	 * THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
-	 * 
+	 * <p>
+	 * <STRONG>THIS METHOD IS NOT IMPLEMENTED - DO NOT USE</STRONG>
+	 * <p>
 	 * @param begin				low value of the range (inclusive)
 	 * @param end				high value of the range (inclusive)
 	 * @param filterModule		Lua module name which contains filter function
@@ -427,14 +442,15 @@ public class LargeList {
 	 * @param filterArgs		arguments to Lua function name
 	 * @return					list of entries selected
 	 */
+	@Deprecated
 	public List<?> range(Value begin, Value end, String filterModule, String filterName, Value... filterArgs) throws AerospikeException {
 		throw new NotImplementedException();
 	}
 	/**
 	 * Select a range of values from the large list, then apply a lua filter.
-	 * 
-	 * THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
-	 * 
+	 * <p>
+	 * <STRONG>THIS METHOD IS NOT IMPLEMENTED - DO NOT USE</STRONG>
+	 * <p>
 	 * @param begin				low value of the range (inclusive)
 	 * @param end				high value of the range (inclusive)
 	 * @param count				maximum number of values to return after applying lua filter. Pass in zero to obtain all values within range. 
@@ -443,6 +459,7 @@ public class LargeList {
 	 * @param filterArgs		arguments to lua function name
 	 * @return					list of entries selected
 	 */
+	@Deprecated
 	public List<?> range(Value begin, Value end, int count, String filterModule, String filterName, Value... filterArgs) throws AerospikeException {
 		throw new NotImplementedException();
 	}
@@ -462,14 +479,15 @@ public class LargeList {
 
 	/**
 	 * Select values from list and apply specified Lua filter.
-	 *  
-	 * THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
-	 *  
+	 * <p>
+	 * <STRONG>THIS METHOD IS NOT IMPLEMENTED - DO NOT USE</STRONG>
+	 * <p>
 	 * @param filterModule		Lua module name which contains filter function
 	 * @param filterName		Lua function name which applies filter to returned list
 	 * @param filterArgs		arguments to Lua function name
 	 * @return					list of entries selected
 	 */
+	@Deprecated
 	public List<?> filter(String filterModule, String filterName, Value... filterArgs) throws AerospikeException {
 		throw new NotImplementedException();
 	}
@@ -493,6 +511,7 @@ public class LargeList {
 
 	/**
 	 * Return size of list.
+	 * @return size of list.
 	 */
 	public int size()
 	{
@@ -505,10 +524,12 @@ public class LargeList {
 
 	/**
 	 * Return map of list configuration parameters.
-	 *  
-	 * THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
-	 *  
+	 * <p>
+	 * <STRONG>THIS METHOD IS NOT IMPLEMENTED - DO NOT USE</STRONG>
+	 * <p>
+	 * @return null, deprecated
 	 */
+	@Deprecated
 	public Map<?,?> getConfig()
 	{
 		throw new NotImplementedException ();
@@ -516,11 +537,12 @@ public class LargeList {
 
 	/**
 	 * Set LDT page size. 
-	 * 
-	 * THIS METHOD IS NOT IMPLEMENTED - DO NOT USE
-	 * 
+	 * <p>
+	 * <STRONG>THIS METHOD IS NOT IMPLEMENTED - DO NOT USE</STRONG>
+	 * <p>
+	 * @param pageSize Size of the LargeList memory page
 	 */
-
+	@Deprecated
 	public void setPageSize(int pageSize)
 	{
 		throw new NotImplementedException ();

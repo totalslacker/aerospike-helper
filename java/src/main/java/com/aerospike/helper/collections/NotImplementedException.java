@@ -3,7 +3,7 @@ package com.aerospike.helper.collections;
 public class NotImplementedException extends RuntimeException {
 
 	/**
-	 * 
+	 * This exception indicates the the method is not implemented.
 	 */
 	private static final long serialVersionUID = 6989807145209111662L;
 

@@ -27,7 +27,7 @@ import com.aerospike.client.query.IndexType;
  * This class represents a Secondary Index
  * created in the cluster.
  * 
- * @author peter
+ * @author Peter Milne
  *
  */
 public class Index {
@@ -55,7 +55,7 @@ public class Index {
 	}
 	/**
 	 * Populates the Index object from an "info" message from Aerospike
-	 * @param info
+	 * @param info Info string from node
 	 */
 	public void setIndexInfo(String info){
 		//ns=phobos_sindex:set=longevity:indexname=str_100_idx:num_bins=1:bins=str_100_bin:type=TEXT:sync_state=synced:state=RW;

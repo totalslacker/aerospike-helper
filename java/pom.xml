@@ -80,6 +80,25 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>2.9.1</version>
+				<configuration>
+					<reportOutputDirectory>${project.basedir}</reportOutputDirectory>
+					<outputDirectory>${project.basedir}</outputDirectory>
+					<destDir>javadoc</destDir>
+					<doctitle>Aerospike Helper</doctitle>
+					<show>public</show>
+					<splitindex>true</splitindex>
+					<bottom>Copyright &#169; 2012&#x2013;{currentYear} Aerospike, Inc.
+						All rights reserved.</bottom>
+					<sourcepath>${project.basedir}/src/main/java</sourcepath>
+<!-- 					<sourceFileIncludes> -->
+<!-- 						<include>com/aerospike/helper/**/*</include> -->
+<!-- 					</sourceFileIncludes> -->
+				</configuration>
+			</plugin>
 		</plugins>
 		<resources>
 			<resource>

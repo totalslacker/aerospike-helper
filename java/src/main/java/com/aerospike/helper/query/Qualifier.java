@@ -41,7 +41,8 @@ import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.IndexCollectionType;
 /**
  * Generic Bin qualifier. It acts as a filter to exclude records that do not met this criteria.
- * The operations supported are 
+ * The operations supported are:
+ * <ul>
  * <li>EQ - Equals</li>
  * <li>GT - Greater than</li>
  * <li>GTEQ - Greater than or equal to</li>
@@ -51,8 +52,8 @@ import com.aerospike.client.query.IndexCollectionType;
  * <li>BETWEEN - Between two value (inclusive)</li>
  * <li>START_WITH - A string that starts with</li>
  * <li>ENDS_WITH - A string that ends with</li>
- * 
- * @author peter
+ * </ul><p>
+ * @author Peter Milne
  *
  */
 public class Qualifier implements Map<String, Object>{
