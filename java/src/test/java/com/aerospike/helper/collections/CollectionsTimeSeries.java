@@ -1,61 +1,82 @@
 package com.aerospike.helper.collections;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.log4j.Logger;
-import org.junit.After;
+import org.joda.time.DateTime;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.Key;
-import com.aerospike.client.Value;
-import com.aerospike.client.policy.ClientPolicy;
-import com.aerospike.helper.query.TestQueryEngine;
 
 public class CollectionsTimeSeries {
-	
+
 	public static final String NAMESPACE = "test";
 	public static final String SET = "time_series";
-	
+
 	protected static Logger log = Logger.getLogger(CollectionsTimeSeries.class);
 	private AerospikeClient client;
 
-	@Before
-	public void setUp() {
-		try
-		{
-			log.info("Creating AerospikeClient");
-			ClientPolicy clientPolicy = new ClientPolicy();
-			clientPolicy.timeout = TestQueryEngine.TIME_OUT;
-			client = new AerospikeClient(clientPolicy, TestQueryEngine.HOST, TestQueryEngine.PORT);
-			client.writePolicyDefault.expiration = 1800;
+	//	@Before
+	//	public void setUp() {
+	//		try
+	//		{
+	//			log.info("Creating AerospikeClient");
+	//			ClientPolicy clientPolicy = new ClientPolicy();
+	//			clientPolicy.timeout = TestQueryEngine.TIME_OUT;
+	//			client = new AerospikeClient(clientPolicy, TestQueryEngine.HOST, TestQueryEngine.PORT);
+	//			client.writePolicyDefault.expiration = 1800;
+	//
+	//		} catch (Exception ex)
+	//		{
+	//			ex.printStackTrace();
+	//		}
+	//	}
+	//
+	//	@After
+	//	public void tearDown() {
+	//		log.info("Closing AerospikeClient");
+	//		client.close();
+	//	}
 
-		} catch (Exception ex)
-		{
-			ex.printStackTrace();
-		}
-	}
-
-	@After
-	public void tearDown() {
-		log.info("Closing AerospikeClient");
-		client.close();
-	}
-	
 	@Test
-	public void add100IntOneByOne(){
-		Key key = new Key (NAMESPACE, SET, "100-time-series-key-int");
-		client.delete(null, key);
-		TimeSeries t = new TimeSeries (client, null, key, "100-ts-int");
-		for (int x = 0; x < 100; x++){
-			long timeStamp = System.currentTimeMillis();
-			t.add(timeStamp, Value.get(x));
+	public void bucketAllocation(){
+		TimeSeries timeSeries = new TimeSeries (new Key("test", "holdings", "a-unique-account number-001"), 1000);
+		DateTime startTime = new DateTime("1960-03-31T23:50:45.576");
+		List<Long> list = timeStamp(startTime, 1000);
+		for (Long timeStamp : list){
+			Long bucket = timeSeries.bucketNumber(timeStamp);
+			//log.info(String.format("Bucket number: %d, timeStamp: %d", bucket, timeStamp));
+			Assert.assertEquals(0L, bucket % 1000);
 		}
-		t.findAll();
-		Assert.assertEquals (100, ll.size ());
-		t.destroy ();
-		client.delete(null, key);
 	}
 
+	@Test
+	public void subRecordKey(){
+		TimeSeries timeSeries = new TimeSeries (new Key("test", "holdings", "a-unique-account number-001"), 1000);
+		DateTime startTime = new DateTime("1960-03-31T23:50:45.576");
+		List<Long> list = timeStamp(startTime, 1000);
+		for (Long timeStamp : list){
+			Key subRecordKey = timeSeries.formSubrecordKey(timeStamp);
+			//log.info(String.format("Subrecord key: %s, timestamp %s", subRecordKey.toString(), Long.toHexString(timeSeries.bucketNumber(timeStamp))));
+			Assert.assertEquals(timeSeries.getKey().namespace, subRecordKey.namespace);
+			Assert.assertEquals(timeSeries.getKey().setName, subRecordKey.setName);
+			Assert.assertTrue(subRecordKey.userKey.toString().endsWith(Long.toHexString(timeSeries.bucketNumber(timeStamp))));
+		}
+	}
+
+	
+	
+	List<Long> timeStamp(final DateTime startTime, final int number){
+		List<Long> list = new ArrayList<Long>();
+		
+		for (int x = 1; x <= number; x++){
+			DateTime newTime = startTime.plusMillis(323 * x);
+			list.add(newTime.getMillis());
+		}
+		return list;
+	}
 
 }

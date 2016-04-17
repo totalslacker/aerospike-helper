@@ -17,11 +17,9 @@
 package com.aerospike.helper.collections;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.Bin;
@@ -57,12 +55,15 @@ public class TimeSeries {
 	private Key key;
 	private String binName;
 	private long bucketSize; // Bucket size in milliseconds
+	private long modelVersion = 1;
+	
 
 	/** 
 	 * Private constructor for test only
 	 */
-	private TimeSeries(){
-		
+	TimeSeries(Key topRecordKey, long bucketSize){
+		this.bucketSize = bucketSize;
+		this.key = topRecordKey;
 	}
 	public TimeSeries(AerospikeClient client, WritePolicy policy, Key key, String binName) {
 		super();
@@ -88,7 +89,7 @@ public class TimeSeries {
 	
 	public void add(long timeStamp, Value value){
 		Key subKey = formSubrecordKey(timeStamp);
-		this.client.operate(this.policy, subKey, ListOperation.append(valueBin, Value.get(formEntry(timeStamp, value))));
+		this.client.operate(this.policy, subKey, ListOperation.append(valueBin, Value.get(new Entry(timeStamp, value).toMap())));
 	}
 
 	public void add(List<Map<String, Object>> values){
@@ -139,7 +140,7 @@ public class TimeSeries {
 	 * @param highTime
 	 * @return
 	 */
-	private List<Key> subrecordKeys(long lowTime, long highTime){
+	List<Key> subrecordKeys(long lowTime, long highTime){
 		List<Key> keys = new ArrayList<Key>();
 		long lowBucketNumber = bucketNumber(lowTime);
 		long highBucketNumber = bucketNumber(highTime);
@@ -149,96 +150,49 @@ public class TimeSeries {
 		return keys;
 	}
 
-	private Key formSubrecordKey(long timeStamp){
-		String keyString = String.format("%1::%2", this.key.userKey.toString(), bucketNumber(timeStamp));
+	Key formSubrecordKey(long timeStamp){
+		String keyString = String.format("%s::%s", this.key.userKey.toString(), Long.toHexString(bucketNumber(timeStamp)));
 		return new Key(this.key.namespace, this.key.setName, keyString);
 	}
 
-	private long bucketNumber(long timeStamp){
+	long bucketNumber(long timeStamp){
 		long quantPart = timeStamp / bucketSize;
 		long bucketNumber = quantPart * bucketSize;
 		return bucketNumber;
 	}
 	
-	private Map<String, Object> formEntry(long timeStamp, Value value){
-		Map<String, Object> entry = new HashMap<String, Object>();
-		entry.put(tsKey, timeStamp);
-		entry.put(tsValue, value);
-		return entry;
+	public Key getKey() {
+		return this.key;
 	}
-	
-	public class Entry<String, Object> implements Map<String, Object>{
+
+	public class Entry{
 		
-		public Entry(long timeSeries, Value value){
-			this.internalMap.put(tsKey, (Long)timeSeries);
-			this.internalMap.put(tsValue, value);
+		private long timeStamp;
+		private Value value;
+
+		public Entry(long timeStamp, Value value){
+			this.timeStamp = timeStamp;
+			this.value = value;
 		}
 		Map<String, Object> internalMap;
 		
 		public long getTimeStamp(){
-			return (Long) this.internalMap.get(tsKey);
+			return this.timeStamp;
 		}
 
 		public Value getValue(){
-			return (Value) this.internalMap.get(tsValue);
-		}
-
-		@Override
-		public int size() {
-			return internalMap.size();
-		}
-
-		@Override
-		public boolean isEmpty() {
-			return internalMap.isEmpty();
-		}
-
-		public boolean containsKey(String key) {
-			return internalMap.containsKey(key);
-		}
-
-		public boolean containsValue(Object value) {
-			return internalMap.containsValue(value);
-		}
-
-		public Object get(Object key) {
-			return internalMap.get(key);
-		}
-
-		@Override
-		public Object put(String key, Object value) {
-			return internalMap.put(key, value);
-		}
-
-		public Object remove(Object key) {
-			return internalMap.remove(key);
-		}
-
-		@Override
-		public void putAll(Map m) {
-			internalMap.putAll(m);
-		}
-
-		@Override
-		public void clear() {
-			internalMap.clear();
-		}
-
-		@Override
-		public Set<String> keySet() {
-			return internalMap.keySet();
-		}
-
-		@Override
-		public Collection<Object> values() {
-			return internalMap.values();
-		}
-
-		@Override
-		public Set<Entry<String, Object>> entrySet() {
-			return internalMap.entrySet();
+			return this.value;
 		}
 		
+		public Map<String, Object> toMap(){
+			Map<String, Object> entry = new HashMap<String, Object>();
+			entry.put(tsKey, timeStamp);
+			entry.put(tsValue, value);
+			return entry;
+
+		}
+
 	}
+
 
 }
