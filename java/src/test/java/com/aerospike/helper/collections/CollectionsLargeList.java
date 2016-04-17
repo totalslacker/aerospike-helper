@@ -93,8 +93,6 @@ public class CollectionsLargeList {
 		Assert.assertEquals (100, ll.size ());
 		ll.destroy ();
 		client.delete(null, key);
-
-
 	}
 
 	@Test

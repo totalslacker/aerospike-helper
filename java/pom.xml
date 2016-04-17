@@ -49,6 +49,13 @@
 			<version>4.12</version>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
+			<version>2.9.3</version>
+		</dependency>
+
 	</dependencies>
 	<build>
 		<plugins>
@@ -94,9 +101,9 @@
 					<bottom>Copyright &#169; 2012&#x2013;{currentYear} Aerospike, Inc.
 						All rights reserved.</bottom>
 					<sourcepath>${project.basedir}/src/main/java</sourcepath>
-<!-- 					<sourceFileIncludes> -->
-<!-- 						<include>com/aerospike/helper/**/*</include> -->
-<!-- 					</sourceFileIncludes> -->
+					<!-- <sourceFileIncludes> -->
+					<!-- <include>com/aerospike/helper/**/*</include> -->
+					<!-- </sourceFileIncludes> -->
 				</configuration>
 			</plugin>
 		</plugins>
