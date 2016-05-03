@@ -73,20 +73,23 @@ public class TimeSeries {
 		this.binName = binName;
 		config();
 	}
-	
+
 	private void config(){
+		Map<String, Object> conf = null;
 		Record record = this.client.get(this.policy, key, binName);
-		Map<String, Object> conf = (Map<String, Object>) record.getValue(binName);
-		if (conf != null){
-			this.bucketSize = (Long) conf.get(configBucketSize);
-		} else {
+		if (record != null){
+			conf = (Map<String, Object>) record.getValue(binName);
+		} 
+		if (conf == null){
 			conf = new HashMap<String, Object>();
 			conf.put(configBucketSize, DefaultBucketSize);
 			this.bucketSize = DefaultBucketSize;
 			this.client.put(this.policy, this.key, new Bin(binName, Value.get(conf)));
+		} else {
+			this.bucketSize = (Long) conf.get(configBucketSize);
 		}
 	}
-	
+
 	public void add(long timeStamp, Value value){
 		Key subKey = formSubrecordKey(timeStamp);
 		this.client.operate(this.policy, subKey, ListOperation.append(valueBin, Value.get(new Entry(timeStamp, value).toMap())));

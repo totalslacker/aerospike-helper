@@ -10,6 +10,7 @@ import org.junit.Test;
 
 import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.Key;
+import com.aerospike.client.Value;
 
 public class CollectionsTimeSeries {
 
@@ -67,7 +68,26 @@ public class CollectionsTimeSeries {
 		}
 	}
 
-	
+	@Test
+	public void add(){
+		Key key = new Key("test", "holdings", "a-unique-account number-002");
+		client = new AerospikeClient("127.0.0.1", 3000);
+		client.delete(null, key);
+		TimeSeries timeSeries = new TimeSeries (client,null, key,"ts-bin-001");
+		DateTime startTime = new DateTime("1960-04-30T23:50:45.576");
+		List<Long> list = timeStamp(startTime, 1000);
+		for (Long timeStamp : list){
+			Value writtenValue = Value.get(timeStamp & 25000);
+			timeSeries.add(timeStamp, writtenValue);
+			
+			Value readValue = timeSeries.find(timeStamp);
+			
+			Assert.assertEquals(writtenValue.toLong(), readValue.toLong());
+		}
+		client.close();
+		client = null;
+	}
+
 	
 	List<Long> timeStamp(final DateTime startTime, final int number){
 		List<Long> list = new ArrayList<Long>();
