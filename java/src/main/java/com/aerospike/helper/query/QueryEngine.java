@@ -34,6 +34,7 @@ import com.aerospike.client.Language;
 import com.aerospike.client.Record;
 import com.aerospike.client.Value;
 import com.aerospike.client.cluster.Node;
+import com.aerospike.client.command.ParticleType;
 import com.aerospike.client.policy.InfoPolicy;
 import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.WritePolicy;
@@ -202,7 +203,7 @@ public class QueryEngine implements Closeable{
 	 * @return A KeyRecordIterator to iterate over the results
 	 */
 	public KeyRecordIterator select(Statement stmt, Qualifier... qualifiers){
-		return select(stmt, false, qualifiers);
+		return select(stmt, false, null, qualifiers);
 	}
 	/**
 	 * Select records filtered by Qualifiers
@@ -211,13 +212,17 @@ public class QueryEngine implements Closeable{
 	 * @param qualifiers Zero or more Qualifiers for the update query
 	 * @return A KeyRecordIterator to iterate over the results
 	 */
-	public KeyRecordIterator select(Statement stmt, boolean metaOnly, Qualifier... qualifiers){
+	public KeyRecordIterator select(Statement stmt, boolean metaOnly, Node node, Qualifier... qualifiers){
 		KeyRecordIterator results = null;
 		/*
 		 * no filters
 		 */
 		if (qualifiers == null || qualifiers.length == 0)  {
-			RecordSet recordSet = this.client.query(null, stmt);
+			RecordSet recordSet = null;
+			if (node != null)
+				recordSet = this.client.queryNode(null, stmt, node);
+			else
+				recordSet = this.client.query(null, stmt);
 			results = new KeyRecordIterator(stmt.getNamespace(), recordSet);
 			return results;
 		}
@@ -261,14 +266,19 @@ public class QueryEngine implements Closeable{
 
 		String filterFuncStr = buildFilterFunction(qualifiers);
 		originArgs.put("filterFuncStr", filterFuncStr);
-		
+
 		if (metaOnly)
 			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "query_meta", Value.get(originArgs));
 		else
 			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "select_records", Value.get(originArgs));
-
-		ResultSet resultSet = this.client.queryAggregate(null, stmt);
-		results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
+		ResultSet resultSet = null;
+		
+		if (node != null) {
+			resultSet = this.client.queryAggregateNode(null, stmt, node);
+		} else {
+			resultSet = this.client.queryAggregate(null, stmt);
+		}
+	results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
 		return results;
 	}
 
@@ -334,7 +344,7 @@ public class QueryEngine implements Closeable{
 	 */
 	public void insert(Statement stmt, KeyQualifier keyQualifier, List<Bin> bins, int ttl){
 		Key key = keyQualifier.makeKey(stmt.getNamespace(), stmt.getSetName());
-//		Key key = new Key(stmt.getNamespace(), stmt.getSetName(), keyQualifier.getValue1());
+		//		Key key = new Key(stmt.getNamespace(), stmt.getSetName(), keyQualifier.getValue1());
 		this.client.put(this.insertPolicy, key, bins.toArray(new Bin[0]));	
 
 	}
@@ -364,7 +374,7 @@ public class QueryEngine implements Closeable{
 			result.put("write", 1L);
 			return result;
 		} else {
-			KeyRecordIterator results = select(stmt, true, qualifiers);
+			KeyRecordIterator results = select(stmt, true, null, qualifiers);
 			return update(results, bins);
 		}
 	}
@@ -422,7 +432,7 @@ public class QueryEngine implements Closeable{
 			map.put("write", 1L);
 			return map;
 		}
-		KeyRecordIterator results = select(stmt, true, qualifiers);
+		KeyRecordIterator results = select(stmt, true, null, qualifiers);
 		return delete(results);
 	}
 
@@ -650,5 +660,39 @@ public class QueryEngine implements Closeable{
 		moduleCache.clear();
 		moduleCache = null;
 	}
+
+
+	public Map<String, Integer> inferSchema(String namespace, String set, int scanCount) throws IOException{
+		Map<String, Integer> typeMap = new HashMap<String, Integer>();
+		Statement stmt = new Statement();
+		stmt.setNamespace(namespace);
+		stmt.setSetName(set);
+		KeyRecordIterator it = select(stmt);
+		try{
+
+			typeMap.put("namespace", ParticleType.STRING);
+			typeMap.put("set", ParticleType.STRING);
+			typeMap.put("digest", ParticleType.BLOB);
+			typeMap.put("key", -99);
+
+			int count = 0;
+			while (it.hasNext() && count < scanCount){
+				KeyRecord rec = it.next();
+				for(Map.Entry<String, Object> entry : rec.record.bins.entrySet()){ 
+					if (typeMap.containsKey(entry.getKey()))
+						continue;
+					Value value = (Value) entry.getValue();
+					typeMap.put(entry.getKey(), value.getType()); 
+				}
+				count++;
+			}
+		} finally {
+			it.close();
+		}
+		return typeMap;
+	}
+
+
+
 
 }
