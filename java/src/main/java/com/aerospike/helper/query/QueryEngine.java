@@ -483,7 +483,7 @@ public class QueryEngine implements Closeable{
 
 
 	private void registerUDF() {
-		if (getModule(QUERY_MODULE+".lua") == null){ // register the as_utility udf module
+		if (!this.moduleCache.containsKey(QUERY_MODULE+".lua")){ // register the as_utility udf module
 
 			RegisterTask task = this.client.register(null, this.getClass().getClassLoader(), 
 					AS_UTILITY_PATH, 
@@ -619,9 +619,11 @@ public class QueryEngine implements Closeable{
 	public synchronized void refreshModules(){
 		if (this.moduleCache == null)
 			this.moduleCache = new TreeMap<String, Module>();
+		boolean loadedModules = false;
 		Node[] nodes = client.getNodes();
 		for (Node node : nodes){
-			if (node.isActive()){
+			try {
+			
 				String packagesString = Info.request(infoPolicy, node, "udf-list");
 				if (!packagesString.isEmpty()){
 					String[] packagesList = packagesString.split(";");
@@ -632,8 +634,14 @@ public class QueryEngine implements Closeable{
 						this.moduleCache.put(module.getName(), module);
 					}
 				}
+				loadedModules = true;
 				break;
+			} catch (AerospikeException e){
+				
 			}
+		}
+		if (!loadedModules){
+			throw new ClusterRefreshError("Cannot find UDF modules");
 		}
 	}
 	/**
@@ -660,39 +668,6 @@ public class QueryEngine implements Closeable{
 		moduleCache.clear();
 		moduleCache = null;
 	}
-
-
-	public Map<String, Integer> inferSchema(String namespace, String set, int scanCount) throws IOException{
-		Map<String, Integer> typeMap = new HashMap<String, Integer>();
-		Statement stmt = new Statement();
-		stmt.setNamespace(namespace);
-		stmt.setSetName(set);
-		KeyRecordIterator it = select(stmt);
-		try{
-
-			typeMap.put("namespace", ParticleType.STRING);
-			typeMap.put("set", ParticleType.STRING);
-			typeMap.put("digest", ParticleType.BLOB);
-			typeMap.put("key", -99);
-
-			int count = 0;
-			while (it.hasNext() && count < scanCount){
-				KeyRecord rec = it.next();
-				for(Map.Entry<String, Object> entry : rec.record.bins.entrySet()){ 
-					if (typeMap.containsKey(entry.getKey()))
-						continue;
-					Value value = (Value) entry.getValue();
-					typeMap.put(entry.getKey(), value.getType()); 
-				}
-				count++;
-			}
-		} finally {
-			it.close();
-		}
-		return typeMap;
-	}
-
-
 
 
 }

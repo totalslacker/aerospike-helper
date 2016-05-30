@@ -30,6 +30,7 @@
  */
 package com.aerospike.helper.query;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -56,7 +57,8 @@ import com.aerospike.client.query.IndexCollectionType;
  * @author Peter Milne
  *
  */
-public class Qualifier implements Map<String, Object>{
+public class Qualifier implements Map<String, Object>, Serializable{
+	private static final long serialVersionUID = -2689196529952712849L;
 	private static final String FIELD = "field";
 	private static final String VALUE2 = "value2";
 	private static final String VALUE1 = "value1";
