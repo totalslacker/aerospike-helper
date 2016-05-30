@@ -7,7 +7,7 @@ function dumpTable (tbl, indent)
     formatting = string.rep("  ", indent) .. k .. ": "
     if type(v) == "table" then
       info(formatting)
-      tprint(v, indent+1)
+      dumpTable(v, indent+1)
     else
       info(formatting .. tostring(v))
     end
@@ -48,9 +48,17 @@ function dumpLocal()
 end
 
 function containsValue(collection, value)
-	for _,v in pairs(collection) do
-	  if v == value then
-	    return true
+    if type(collection) == "table" then
+	  for _,v in pairs(collection) do
+	    if v == value then
+	      return true
+	    end
+	  end
+	else
+	  for v in list.iterator(collection) do
+	    if v == value then
+	      return true
+	    end
 	  end
 	end
 	return false
@@ -66,9 +74,17 @@ function containsKey(collection, key)
 end 
 
 function rangeValue(collection, low, high)
-	for _,v in pairs(collection) do
-	  if v >= low and v <= high  then
-	    return true
+	if type(collection) == "table" then
+	  for _,v in pairs(collection) do
+	    if v >= low and v <= high  then
+	      return true
+	    end
+	  end
+	else
+	  for v in list.iterator(collection) do
+	    if v == value then
+	      return true
+	    end
 	  end
 	end
 	return false
@@ -99,7 +115,13 @@ local function filter_record(rec, filterFuncStr, filterFunc)
                     generation = record.gen(rec),
                     digest = record.digest(rec),
                     set_name = record.setname(rec),
-                    expiry = record.ttl(rec)}
+                    expiry = record.ttl(rec),
+                    containsValue = containsValue,
+                    dumpLocal = dumpLocal,
+                    dumpTable = dumpTable,
+                    dumpRecord = dumpRecord,
+                    debug = debug,
+                    info = info}
 
     -- sandbox the function
     setfenv(filterFunc, context)
