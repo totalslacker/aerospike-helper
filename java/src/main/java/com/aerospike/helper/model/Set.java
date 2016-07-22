@@ -72,7 +72,7 @@ public class Set {
 					storedValue.value = value;
 				}
 			}
-			this.name = (String) values.get("set_name").value;
+			this.name = (String) values.get("set").value;
 		}
 	}
 
